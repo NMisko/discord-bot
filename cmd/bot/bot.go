@@ -61,6 +61,7 @@ var (
 		"!eb",
 		"!ethanbradberry",
 		"!h3h3",
+		"!nycto",
 	}
 )
 
@@ -591,7 +592,7 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		}
 
 		// Select mode
-		if scontains(parts[0], "!cena", "!johncena") {
+		if scontains(parts[0], "!cena", "!johncena", "!nycto") {
 			stype = TYPE_CENA
 		} else if scontains(parts[0], "!eb", "!ethanbradberry", "!h3h3") {
 			stype = TYPE_ETHAN

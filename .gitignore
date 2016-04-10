@@ -1,10 +1,10 @@
-bot/bot
 *.pyc
 app/settings.py
 *.db
 .DS_Store
-bot
 web
 requests.log
 dist
 node_modules
+cmd/test/
+bot

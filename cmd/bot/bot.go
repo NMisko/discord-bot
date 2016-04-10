@@ -150,7 +150,7 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 					return
 				}
 				s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("http://%s", summoner.rankImage))
-				s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("**%s**", summoner.rank))
+				s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("**%s** %sLP", summoner.rank, summoner.lp))
 				if(summoner.rank != "Unranked") {
 					s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Wins: **%s** Losses: **%s** Winrate: **%s**", summoner.wins, summoner.losses, summoner.winratio))
 				}

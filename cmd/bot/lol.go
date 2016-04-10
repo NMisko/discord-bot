@@ -14,6 +14,7 @@ type Summoner struct {
     wins string
     losses string
     winratio string
+	lp string
 }
 
 func GetSummonerElo(summonername string, region string) Summoner {
@@ -28,13 +29,14 @@ func GetSummonerElo(summonername string, region string) Summoner {
 	var winratio string
 	var rank string
 	var rankImage string
+	var lp string
 
 
     userExistsRegexp := regexp.MustCompile("This summoner is not registered at")
     userExists :=  userExistsRegexp.FindAllString(htmlData, -1)
     if (len(userExists) > 0) {
         log.Warning("User ", summonername, " not found.")
-        return Summoner{"","","","",""}
+        return Summoner{"","","","","", ""}
     }
 
     tierBoxRegexp := regexp.MustCompile("(<div class=\"TierBox Box).*(/div).*(/div)")
@@ -93,7 +95,17 @@ func GetSummonerElo(summonername string, region string) Summoner {
 		rank = ""
 	}
 
+	lpRegexp := regexp.MustCompile("[0-9]* LP")
+	lpbox := lpRegexp.FindAllString(htmlData, -1)
+	log.Info(lpbox)
+	if (len(lpbox) > 0) {
+		lp = numbers.FindAllString(lpbox[0], -1)[0]
+	} else {
+		lp = ""
+	}
+	log.Info(lp)
+
 	winrarr := []string{winratio,"%"}
-	log.Info(Summoner{rank, rankImage, wins, losses, strings.Join(winrarr, "")})
-    return Summoner{rank, rankImage, wins, losses, strings.Join(winrarr, "")}
+	log.Info(Summoner{rank, rankImage, wins, losses, strings.Join(winrarr, ""), lp})
+    return Summoner{rank, rankImage, wins, losses, strings.Join(winrarr, ""), lp}
 }

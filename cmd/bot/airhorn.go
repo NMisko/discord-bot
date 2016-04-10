@@ -6,6 +6,7 @@ import (
     "io"
     "os/exec"
     "time"
+    "strconv"
 
     log "github.com/Sirupsen/logrus"
     "github.com/bwmarrin/discordgo"

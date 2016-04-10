@@ -7,7 +7,6 @@ import (
 	"os/signal"
 	"strconv"
 	"strings"
-	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/bwmarrin/discordgo"
@@ -130,8 +129,16 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		region := "euw"
 		if (len(parts) > 1) {
 			if (len(parts) > 2) {
-				if (strings.ToLower(parts[2]) == "na") {
-					region = "na"
+				switch (strings.ToLower(parts[2])) {
+					case "na": region = "na"
+					case "br": region = "br"
+					case "kr": region = ""
+					case "eune": region = "eune"
+					case "jp": region = "jp"
+					case "tr": region = "tr"
+					case "oce": region = "oce"
+					case "las": region = "las"
+					case "ru" : region = "ru"
 				}
 			}
 

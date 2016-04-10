@@ -65,19 +65,32 @@ func GetSummonerElo(summonername string, region string) Summoner {
 		winratio = ""
 	}
     rankImageRegexp := regexp.MustCompile("sk2.op.gg/images/medals/.*.png")
-    rankImagearr := rankImageRegexp.FindAllString(tierBox[0], -1)
-	if (len(rankImagearr) > 0) {
-		rankImage = rankImagearr[0]
+
+	var rankImagearr []string
+	if (len(tierBox) > 0) {
+		rankImagearr = rankImageRegexp.FindAllString(tierBox[0], -1)
+		if (len(rankImagearr) > 0) {
+			rankImage = rankImagearr[0]
+		} else {
+			rankImage = ""
+		}
 	} else {
 		rankImage = ""
 	}
 
     rankRegexp := regexp.MustCompile("((Bronze|Silver|Gold|Platinum|Diamond) [1-5])|(Unranked|Master|Challenger)")
-    rankarr := rankRegexp.FindAllString(tierBox[0], -1)
-	if (len(rankarr) == 0) {
-		rank = ""
+
+	var rankarr []string
+	if (len(tierBox) > 0) {
+		rankarr = rankRegexp.FindAllString(tierBox[0], -1)
+
+		if (len(rankarr) > 0) {
+			rank = rankarr[0]
+		} else {
+			rank = ""
+		}
 	} else {
-		rank = rankarr[0]
+		rank = ""
 	}
 
 	winrarr := []string{winratio,"%"}

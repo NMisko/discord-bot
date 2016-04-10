@@ -263,7 +263,7 @@ func server() {
 	server.HandleFunc("/login", handleLogin)
 	server.HandleFunc("/callback", handleCallback)
 
-	// Only add this route if we have stats to push (e.g. redis connection)
+	//Only add this route if we have stats to push (e.g. redis connection)
 	if es != nil {
 		server.Handle("/events", es)
 	}
@@ -350,7 +350,6 @@ func main() {
 		defer es.Close()
 		go broadcastLoop()
 	}
-
 	// Load the HTML static page
 	data, err := ioutil.ReadFile("templates/index.html")
 	if err != nil {

@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"math/rand"
 	"os"
 	"os/exec"
@@ -12,6 +13,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"regexp"
+	"net/http"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/bwmarrin/discordgo"
@@ -20,8 +23,12 @@ import (
 )
 
 var (
+	LOLAUTH = "a214e3b1-4807-43a9-9e64-c9afcde44ce9"
+
 	// discordgo session
 	discord *discordgo.Session
+
+	me *discordgo.User
 
 	// Redis client connection (used for stats)
 	rcli *redis.Client
@@ -53,15 +60,15 @@ var (
 
 	// Commands
 	COMMANDS []string = []string{
-		"!airhorn",
-		"!anotha",
-		"!anothaone",
-		"!cena",
-		"!johncena",
-		"!eb",
-		"!ethanbradberry",
-		"!h3h3",
-		"!nycto",
+	/*"!airhorn",
+	"!anotha",
+	"!anothaone",
+	"!cena",
+	"!johncena",
+	"!eb",
+	"!ethanbradberry",
+	"!h3h3",
+	"!nycto",*/
 	}
 )
 
@@ -279,6 +286,14 @@ func randomRange(min, max int) int {
 	return rand.Intn(max-min) + min
 }
 
+func convert(b []byte) string {
+	s := make([]string, len(b))
+	for i := range b {
+		s[i] = strconv.Itoa(int(b[i]))
+	}
+	return strings.Join(s, ",")
+}
+
 // Returns a random sound
 func getRandomSound(stype int) *Sound {
 	var i int
@@ -471,7 +486,8 @@ func onGuildCreate(s *discordgo.Session, event *discordgo.GuildCreate) {
 
 	for _, channel := range event.Guild.Channels {
 		if channel.ID == event.Guild.ID {
-			s.ChannelMessageSend(channel.ID, "**AIRHORN BOT READY FOR HORNING. TYPE `!AIRHORN` WHILE IN A VOICE CHANNEL TO ACTIVATE**")
+			s.ChannelMessageSend(channel.ID, "BEEP BOOP BOOTING")
+			s.ChannelMessageSend(channel.ID, "https://media.giphy.com/media/3o85g3yQa2iG2Rdq1O/giphy.gif")
 			return
 		}
 	}
@@ -492,6 +508,104 @@ func calculateAirhornsPerSecond(cid string) {
 	latest, _ := strconv.Atoi(rcli.Get("airhorn:a:total").Val())
 
 	discord.ChannelMessageSend(cid, fmt.Sprintf("Current APS: %v", (float64(latest-current))/10.0))
+}
+
+type Summoner struct {
+    rank string
+    rankImage string
+    wins string
+    losses string
+    winratio string
+}
+
+func DWebsite(url string) (out string){
+    //client := &http.Client{}
+    // resp, err := client.Get("url")
+    resp, err := http.Get(url)
+
+    if err != nil {
+            log.WithFields(log.Fields{
+                "error": err,
+            }).Warning("Failed to GET url.")
+            return ""
+    }
+
+    defer resp.Body.Close()
+
+    htmlData, err := ioutil.ReadAll(resp.Body)
+
+    if err != nil {
+            log.WithFields(log.Fields{
+                "error": err,
+            }).Warning("Failed to read response body.")
+            return ""
+    }
+
+    return string(htmlData)
+}
+
+func GetSummonerElo(summonername string) Summoner {
+    var htmlData string = DWebsite(fmt.Sprintf("http://euw.op.gg/summoner/userName=%s",summonername));
+	var wins string
+	var losses string
+	var winratio string
+	var rank string
+	var rankImage string
+
+
+    userExistsRegexp := regexp.MustCompile("This summoner is not registered at")
+    userExists :=  userExistsRegexp.FindAllString(htmlData, -1)
+    if (len(userExists) > 0) {
+        log.Warning("User ", summonername, " not found.")
+        return Summoner{"","","","",""}
+    }
+
+    tierBoxRegexp := regexp.MustCompile("(<div class=\"TierBox Box).*(/div).*(/div)")
+    tierBox := tierBoxRegexp.FindAllString(htmlData, -1)
+
+    numbers := regexp.MustCompile("[0-9]+")
+    winsRegexp := regexp.MustCompile("(wins\">).*W(</span)")
+    winsbox := winsRegexp.FindAllString(htmlData, -1)
+	if (len(winsbox) > 0) {
+		wins = numbers.FindAllString(winsbox[0], -1)[0]
+    } else {
+		wins = ""
+	}
+    lossesRegexp := regexp.MustCompile("(losses\").*L(</span)")
+    lossesbox := lossesRegexp.FindAllString(htmlData, -1)
+
+	if (len(lossesbox) > 0) {
+		losses = numbers.FindAllString(lossesbox[0], -1)[0]
+    } else {
+		losses = ""
+	}
+    winratioRegexp := regexp.MustCompile("(winratio).*(</span)")
+    winratiobox := winratioRegexp.FindAllString(htmlData, -1)
+
+	if (len(winratiobox) > 0) {
+		winratio = numbers.FindAllString(winratiobox[0], -1)[0]
+    } else {
+		winratio = ""
+	}
+    rankImageRegexp := regexp.MustCompile("sk2.op.gg/images/medals/.*.png")
+    rankImagearr := rankImageRegexp.FindAllString(tierBox[0], -1)
+	if (len(rankImagearr) > 0) {
+		rankImage = rankImagearr[0]
+	} else {
+		rankImage = ""
+	}
+
+    rankRegexp := regexp.MustCompile("(Bronze|Silver|Gold|Platinum|Diamond) [1-5]")
+    rankarr := rankRegexp.FindAllString(tierBox[0], -1)
+	if (len(rankarr) == 0) {
+		rank = ""
+	} else {
+		rank = rankarr[0]
+	}
+
+	winrarr := []string{winratio,"%"}
+	log.Info(Summoner{rank, rankImage, wins, losses, strings.Join(winrarr, "")})
+    return Summoner{rank, rankImage, wins, losses, strings.Join(winrarr, "")}
 }
 
 func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
@@ -577,6 +691,25 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 
+	if parts[0] == "!elo" {
+		name := strings.ToLower(parts[1])
+		if len(name) > 0 {
+			summoner := GetSummonerElo(parts[1])
+			if(summoner.rank == "") {
+				s.ChannelMessageSend(m.ChannelID, "Could not find player.")
+				return
+			}
+			s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("http://%s", summoner.rankImage))
+			s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("**%s**", summoner.rank))
+			s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Wins: **%s** Losses: **%s** Winrate: **%s**", summoner.wins, summoner.losses, summoner.winratio))
+
+			if(name == "uznick") {
+				s.ChannelMessageSend(m.ChannelID, "But deserves Challenjour, Kappa.")
+			}
+		}
+		return
+	}
+
 	if scontains(parts[0], COMMANDS...) {
 		// Support !airhorn <sound>
 		if len(parts) > 1 {
@@ -603,6 +736,7 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		go enqueuePlay(m.Author, guild, sound, khaled, stype)
 	}
 }
+
 
 func main() {
 	var (

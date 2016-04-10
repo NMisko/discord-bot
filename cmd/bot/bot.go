@@ -23,7 +23,7 @@ var (
 
 func onReady(s *discordgo.Session, event *discordgo.Ready) {
 	log.Info("Recieved READY payload")
-	s.UpdateStatus(0, "airhornbot.com")
+	s.UpdateStatus(0, "League Of Legends")
 }
 
 func onGuildCreate(s *discordgo.Session, event *discordgo.GuildCreate) {
@@ -42,14 +42,6 @@ func onGuildCreate(s *discordgo.Session, event *discordgo.GuildCreate) {
 			return
 		}
 	}
-}
-
-func calculateAirhornsPerSecond(cid string) {
-	current, _ := strconv.Atoi(rcli.Get("airhorn:a:total").Val())
-	time.Sleep(time.Second * 10)
-	latest, _ := strconv.Atoi(rcli.Get("airhorn:a:total").Val())
-
-	discord.ChannelMessageSend(cid, fmt.Sprintf("Current APS: %v", (float64(latest-current))/10.0))
 }
 
 func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {

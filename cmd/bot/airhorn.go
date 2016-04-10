@@ -387,6 +387,14 @@ func trackSoundStats(play *Play) {
 	}
 }
 
+func calculateAirhornsPerSecond(cid string) {
+	current, _ := strconv.Atoi(rcli.Get("airhorn:a:total").Val())
+	time.Sleep(time.Second * 10)
+	latest, _ := strconv.Atoi(rcli.Get("airhorn:a:total").Val())
+
+	discord.ChannelMessageSend(cid, fmt.Sprintf("Current APS: %v", (float64(latest-current))/10.0))
+}
+
 // Play a sound
 func playSound(play *Play, vc *discordgo.VoiceConnection) (err error) {
 	log.WithFields(log.Fields{

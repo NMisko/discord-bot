@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"strconv"
 	"strings"
+	"math/rand"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/bwmarrin/discordgo"
@@ -192,9 +193,38 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 					text := fmt.Sprintf("%s: **%s**        min: **%s**°C max: **%s**°C        **%s** from **%s**", days[i], capitalize(d.Symbol.Name), d.Temperature.Min, d.Temperature.Max, strings.ToLower(d.WindSpeed.Name), strings.ToLower(d.WindDirection.Name))
 					s.ChannelMessageSend(m.ChannelID, text)
 				}
-			} else { s.ChannelMessageSend(m.ChannelID, "Can't find information about this city.") }
+			} else { s.ChannelMessageSend(m.ChannelID, "Can't find information about this city.")
+		 }
 		}
 	}
+		if parts[0] == "@jarvis" {
+
+	rand.Seed(50)
+
+	answers := []string{
+	"It is certain",
+	"It is decidedly so",
+	"Without a doubt",
+	"Yes definitely",
+	"You may rely on it",
+	"As I see it yes",
+	"Most likely",
+	"Outlook good",
+	"Yes",
+	"Signs point to yes",
+	"Reply hazy try again",
+	"Ask again later",
+	"Better not tell you now",
+	"Cannot predict now",
+	"Concentrate and ask again",
+	"Don't count on it",
+	"My reply is no",
+	"My sources say no",
+	"Outlook not so good",
+	"Very doubtful",
+}
+s.ChannelMessageSend("J,A.R.V.I.S. says:", answers[rand.Intn(len(answers))])
+}
 
 	// if scontains(parts[0], COMMANDS...) {
 	// 	// Support !airhorn <sound>

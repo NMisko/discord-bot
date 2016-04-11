@@ -229,7 +229,6 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			"My sources say no.",
 			"Outlook not so good.",
 			"Very doubtful.",
-
 		}
 	s.ChannelMessageSend(m.ChannelID, answers[rand.Intn(len(answers))])
 	}

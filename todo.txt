@@ -1,0 +1,15 @@
+@J.A.R.V.I.S.
+	Sentence structure parser (Yes/No-question or not)
+	
+!weather
+	Images
+	Today/Tomorrow argument
+	Hourly data
+
+!coin
+
+!dice (sides)
+
+
+Go offline when closing process
+Change status to (bored/sleeping) when not used for some time

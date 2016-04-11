@@ -45,9 +45,9 @@ func onGuildCreate(s *discordgo.Session, event *discordgo.GuildCreate) {
 
 func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	var (
-		sound    *Sound
-		stype    int = TYPE_AIRHORN
-		khaled   bool
+		//sound    *Sound
+		//stype    int = TYPE_AIRHORN
+		//khaled   bool
 		ourShard = true
 	)
 
@@ -125,6 +125,7 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if !ourShard {
 		return
 	}
+
 	if parts[0] == "!elo" {
 		region := "euw"
 		if (len(parts) > 1) {
@@ -172,31 +173,54 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		}
 	}
 
-	if scontains(parts[0], COMMANDS...) {
-		// Support !airhorn <sound>
-		if len(parts) > 1 {
-			for _, s := range AIRHORNS {
-				if parts[1] == s.Name {
-					sound = s
+	if parts[0] == "!weather" {
+		country := "de"
+		days := []string{"Today", "Tomorrow", "In two days", "In three days"}
+
+		if (len(parts) > 2) { //has 2 arguments
+			country = parts[2]
+		}
+		if (len(parts) > 1) {
+			city := parts[1]
+			weather := GetWeather(parts[1], country)
+
+			//print out next 3 days
+			if (len(weather.Forecast.Time) > 3) {
+				s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Weather forecast for: **%s**", capitalize(city)))
+				for i := 0; i < 3; i++ {
+					d := weather.Forecast.Time[i]
+					text := fmt.Sprintf("%s: **%s**        min: **%s**°C max: **%s**°C        **%s** from **%s**", days[i], capitalize(d.Symbol.Name), d.Temperature.Min, d.Temperature.Max, strings.ToLower(d.WindSpeed.Name), strings.ToLower(d.WindDirection.Name))
+					s.ChannelMessageSend(m.ChannelID, text)
 				}
-			}
-
-			if sound == nil {
-				return
-			}
+			} else { s.ChannelMessageSend(m.ChannelID, "Can't find information about this city.") }
 		}
-
-		// Select mode
-		if scontains(parts[0], "!cena", "!johncena", "!nycto") {
-			stype = TYPE_CENA
-		} else if scontains(parts[0], "!eb", "!ethanbradberry", "!h3h3") {
-			stype = TYPE_ETHAN
-		} else if scontains(parts[0], "!anotha", "!anothaone") {
-			khaled = true
-		}
-
-		go enqueuePlay(m.Author, guild, sound, khaled, stype)
 	}
+
+	// if scontains(parts[0], COMMANDS...) {
+	// 	// Support !airhorn <sound>
+	// 	if len(parts) > 1 {
+	// 		for _, s := range AIRHORNS {
+	// 			if parts[1] == s.Name {
+	// 				sound = s
+	// 			}
+	// 		}
+	//
+	// 		if sound == nil {
+	// 			return
+	// 		}
+	// 	}
+	//
+	// 	// Select mode
+	// 	if scontains(parts[0], "!cena", "!johncena", "!nycto") {
+	// 		stype = TYPE_CENA
+	// 	} else if scontains(parts[0], "!eb", "!ethanbradberry", "!h3h3") {
+	// 		stype = TYPE_ETHAN
+	// 	} else if scontains(parts[0], "!anotha", "!anothaone") {
+	// 		khaled = true
+	// 	}
+	//
+	// 	go enqueuePlay(m.Author, guild, sound, khaled, stype)
+	// }
 }
 
 

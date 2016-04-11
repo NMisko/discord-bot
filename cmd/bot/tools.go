@@ -7,6 +7,8 @@ import (
     "time"
     "strconv"
     "strings"
+    "unicode"
+    "unicode/utf8"
 
     "golang.org/x/net/html"
 
@@ -83,4 +85,16 @@ func scontains(key string, options ...string) bool {
 		}
 	}
 	return false
+}
+
+func capitalize(s string) string {
+    if s == "" { return s }
+    r, n := utf8.DecodeRuneInString(s)
+    return string(unicode.ToTitle(r)) + s[n:]
+}
+
+func lowercase(s string) string {
+    if s == "" { return s }
+    r, n := utf8.DecodeRuneInString(s)
+    return string(unicode.ToLower(r)) + s[n:]
 }

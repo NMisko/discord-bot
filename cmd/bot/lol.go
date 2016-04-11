@@ -49,7 +49,7 @@ func GetSummonerElo(summonername string, region string) Summoner {
     if (ok) {winratio = scrape.Text(node)} else {log.Info("Could not find winratio.")}
 
     node, ok = scrape.Find(root, scrape.ByClass("LeaguePoints"))
-    if (ok) {lp = scrape.Text(node)} else {log.Info("Could not find winratio.")}
+    if (ok) {lp = scrape.Text(node)} else {log.Info("Could not find lp.")}
 
     numbers := regexp.MustCompile("[0-9]+")
 

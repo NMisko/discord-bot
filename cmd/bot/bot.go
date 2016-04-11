@@ -198,8 +198,8 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		}
 	}
 
-	if (parts[0] == "!jarvis") {
-		rand.Seed(50)
+	if (parts[0] == "@J.A.R.V.I.S.") {
+		//rand.Seed(50)
 		answers := []string {
 			"It is certain.",
 			"It is decidedly so.",

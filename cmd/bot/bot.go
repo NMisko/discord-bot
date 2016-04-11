@@ -156,12 +156,14 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 				} else {
 					s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("**%s**", summoner.rank))
 				}
-
 				if(name == "uznick") {
 					s.ChannelMessageSend(m.ChannelID, "But deserves Challenjour, Kappa.")
 				}
-				if(name == "MehdiD") {
+				if(name == "mehdid") {
 					s.ChannelMessageSend(m.ChannelID, "also, best Amumu EUW")
+				}
+				if(name == "flakelol") {
+					s.ChannelMessageSend(m.ChannelID, "also, best Shen EUW")
 				}
 			}
 		return

@@ -52,11 +52,11 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		ourShard = true
 	)
 
-	if len(m.Content) <= 0 || (m.Content[0] != '!' && len(m.Mentions) != 1) {
+	if len(m.Content) <= 0 || ((m.Content[0] != '!' || m.Content[0] != '@') && len(m.Mentions) != 1) {
 		return
 	}
-
 	parts := strings.Split(strings.ToLower(m.Content), " ")
+	log.Info(parts)
 
 	channel, _ := discord.State.Channel(m.ChannelID)
 	if channel == nil {
@@ -198,7 +198,10 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		}
 	}
 
-	if (parts[0] == "@J.A.R.V.I.S.") {
+	//lastword := parts[len(parts)-1]
+	//lastletter := string(lastword[len(lastword)-1])
+
+	if (parts[0] == "<@168313836951175168>" && string(parts[len(parts)-1][len(parts[len(parts)-1])-1]) == "?") {
 		//rand.Seed(50)
 		answers := []string {
 			"It is certain.",

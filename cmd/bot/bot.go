@@ -183,7 +183,7 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		}
 		if (len(parts) > 1) {
 			city := parts[1]
-			weather := --+GetWeather(parts[1], country)
+			weather := GetWeather(parts[1], country)
 
 			//print out next 3 days
 			if (len(weather.Forecast.Time) > 3) {

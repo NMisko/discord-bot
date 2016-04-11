@@ -197,35 +197,33 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		 }
 		}
 	}
-		if parts[0] == "@J.A.R.V.I.S." {
-	log.Info("0")
-	rand.Seed(50)
-	log.Info("1")
-	answers := []string{
-	"It is certain",
-	"It is decidedly so",
-	"Without a doubt",
-	"Yes definitely",
-	"You may rely on it",
-	"As I see it yes",
-	"Most likely",
-	"Outlook good",
-	"Yes",
-	"Signs point to yes",
-	"Reply hazy try again",
-	"Ask again later",
-	"Better not tell you now",
-	"Cannot predict now",
-	"Concentrate and ask again",
-	"Don't count on it",
-	"My reply is no",
-	"My sources say no",
-	"Outlook not so good",
-	"Very doubtful",
-}
-s.ChannelMessageSend("J,A.R.V.I.S. says:", answers[rand.Intn(len(answers))])
-	log.Info("2")
-}
+
+	if (parts[0] == "!jarvis") {
+		rand.Seed(50)
+		answers := []string {
+			"It is certain.",
+			"It is decidedly so.",
+			"Without a doubt.",
+			"Yes definitely.",
+			"You may rely on it.",
+			"As I see it yes.",
+			"Most likely.",
+			"Outlook good.",
+			"Yes.",
+			"Signs point to yes.",
+			"Reply hazy try again.",
+			"Ask again later.",
+			"Better not tell you now.",
+			"Cannot predict now.",
+			"Concentrate and ask again.",
+			"Don't count on it.",
+			"My reply is no.",
+			"My sources say no.",
+			"Outlook not so good.",
+			"Very doubtful.",
+		}
+	s.ChannelMessageSend(m.ChannelID, answers[rand.Intn(len(answers))])
+	}
 
 	// if scontains(parts[0], COMMANDS...) {
 	// 	// Support !airhorn <sound>

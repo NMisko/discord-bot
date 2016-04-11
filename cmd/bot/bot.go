@@ -212,21 +212,28 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			"As I see it yes.",
 			"Most likely.",
 			"Outlook good.",
+			"Yes, of course.",
 			"Yes.",
 			"Signs point to yes.",
-			"Reply hazy try again.",
 			"Ask again later.",
 			"Better not tell you now.",
 			"Cannot predict now.",
 			"Concentrate and ask again.",
 			"Don't count on it.",
+			"No.",
+			"Never.",
+			"Not in this universe.",
+			"Dont ask me..",
+			"What are you? Fucking gay?",
 			"My reply is no.",
 			"My sources say no.",
 			"Outlook not so good.",
 			"Very doubtful.",
+
 		}
 	s.ChannelMessageSend(m.ChannelID, answers[rand.Intn(len(answers))])
 	}
+
 
 	// if scontains(parts[0], COMMANDS...) {
 	// 	// Support !airhorn <sound>

@@ -159,6 +159,7 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 				if(name == "uznick") {
 					s.ChannelMessageSend(m.ChannelID, "But deserves Challenjour, Kappa.")
+				}
 				if(name == "MehdiD") {
 					s.ChannelMessageSend(m.ChannelID, "also, best Amumu EUW")
 				}

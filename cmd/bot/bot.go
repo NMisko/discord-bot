@@ -149,10 +149,12 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 					s.ChannelMessageSend(m.ChannelID, "Could not find player.")
 					return
 				}
-				s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("http://%s", summoner.rankImage))
-				s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("**%s** %sLP", summoner.rank, summoner.lp))
+				s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("http:%s", summoner.rankImage))
 				if(summoner.rank != "Unranked") {
-					s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Wins: **%s** Losses: **%s** Winrate: **%s**", summoner.wins, summoner.losses, summoner.winratio))
+					s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("**%s** %sLP", summoner.rank, summoner.lp))
+					s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Wins: **%s** Losses: **%s** Winrate: **%s**", summoner.wins, summoner.losses, strings.Join([]string{summoner.winratio, "%"}, "")))
+				} else {
+					s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("**%s**", summoner.rank))
 				}
 
 				if(name == "uznick") {

@@ -8,8 +8,33 @@ import (
     "strconv"
     "strings"
 
+    "golang.org/x/net/html"
+
     log "github.com/Sirupsen/logrus"
 )
+
+func ReadWebsite(url string) (out *html.Node) {
+    resp, err := http.Get(url)
+
+    if err != nil {
+            log.WithFields(log.Fields{
+                "error": err,
+            }).Warning("Failed to GET url: ", url)
+            return nil
+    }
+    defer resp.Body.Close()
+
+    root, err := html.Parse(resp.Body)
+
+    if err != nil {
+            log.WithFields(log.Fields{
+                "error": err,
+            }).Warning("Failed to Parse: ", resp.Body)
+            return nil
+    }
+
+    return root
+}
 
 func DWebsite(url string) (out string){
     //client := &http.Client{}

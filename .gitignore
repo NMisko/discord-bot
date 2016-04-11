@@ -7,4 +7,3 @@ requests.log
 dist
 node_modules
 cmd/test/
-bot

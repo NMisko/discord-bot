@@ -43,7 +43,6 @@ func onGuildCreate(s *discordgo.Session, event *discordgo.GuildCreate) {
 		}
 	}
 }
-
 func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	log.Info("message created: ", m.Content)
 	var (
@@ -246,17 +245,16 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			"My sources say no.",
 			"Outlook not so good.",
 			"Very doubtful.",
+		}
+	s.ChannelMessageSend(m.ChannelID, answers[rand.Intn(len(answers))])
+	}
 
-		}
-	s.ChannelMessageSend(m.ChannelID, answers[rand.Intn(len(answers))])
-	}
 	if (parts[0] == "!coin") {
-		answers := []string {
-			"Head.",
-			"Tail.",
-		}
-	s.ChannelMessageSend(m.ChannelID, answers[rand.Intn(len(answers))])
-	}
+file, err := os.Open("images/Head.png")
+if err != nil {
+    log.Warning(err)}
+s.ChannelFileSend(m.ChannelID, "Head", file )
+	 }
 
 	if (parts[0] == "!dice") {
 		answers := []string {

@@ -10,6 +10,9 @@
 
 !dice (sides)
 
+!remember (key) (value)
+
+!remindme in x h[ours]/m[inutes]/s[econds] (value)
 
 Go offline when closing process
 Change status to (bored/sleeping) when not used for some time

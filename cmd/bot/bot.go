@@ -45,6 +45,7 @@ func onGuildCreate(s *discordgo.Session, event *discordgo.GuildCreate) {
 }
 
 func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
+	log.Info("message created: ", m.Content)
 	var (
 		//sound    *Sound
 		//stype    int = TYPE_AIRHORN
@@ -52,9 +53,12 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		ourShard = true
 	)
 
-	if len(m.Content) <= 0 || ((m.Content[0] != '!' || m.Content[0] != '@') && len(m.Mentions) != 1) {
+	if (len(m.Content) <= 0 || (m.Content[0] != '!' && m.Content[0] != '<')) { //@J.A.R.V.I.S = <@168313836951175168>
+		log.Info("not a command")
 		return
 	}
+	log.Info("valid command")
+
 	parts := strings.Split(strings.ToLower(m.Content), " ")
 	log.Info(parts)
 

@@ -229,10 +229,29 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			"My sources say no.",
 			"Outlook not so good.",
 			"Very doubtful.",
+
+		}
+	s.ChannelMessageSend(m.ChannelID, answers[rand.Intn(len(answers))])
+	}
+	if (parts[0] == "!coin") {
+		answers := []string {
+			"Head.",
+			"Tail.",
 		}
 	s.ChannelMessageSend(m.ChannelID, answers[rand.Intn(len(answers))])
 	}
 
+	if (parts[0] == "!dice") {
+		answers := []string {
+			"1",
+			"2",
+			"3",
+			"4",
+			"5",
+			"6",
+		}
+	s.ChannelMessageSend(m.ChannelID, answers[rand.Intn(len(answers))])
+	}
 
 	// if scontains(parts[0], COMMANDS...) {
 	// 	// Support !airhorn <sound>

@@ -250,11 +250,16 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 
 	if (parts[0] == "!coin") {
-file, err := os.Open("images/Head.png")
-if err != nil {
-    log.Warning(err)}
-s.ChannelFileSend(m.ChannelID, "Head", file )
-	 }
+
+	files := []string{
+		"images/Head.png",
+		"images/Tail.png",
+	}
+		file, err := os.Open(files[rand.Intn(len(files))])
+			if err != nil {
+    	log.Warning(err)}
+			s.ChannelFileSend(m.ChannelID, "Coin.png", file)
+	}
 
 	if (parts[0] == "!dice") {
 		answers := []string {

@@ -179,25 +179,38 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 
 	if parts[0] == "!weather" {
+		forecastStart := 0; //Today
+		forecastRange := 3; //0,1,2
 		country := "de"
-		days := []string{"Today", "Tomorrow", "In two days", "In three days"}
+		days := []string{"Today", "Tomorrow", "In two days", "In three days", "In four days", "In five days", "In six days", "In a week"}
 
 		if (len(parts) > 2) { //has 2 arguments
-			country = parts[2]
+			if (strings.ToLower(parts[2]) == "today") {
+				forecastRange = 1
+			} else if (strings.ToLower(parts[2]) == "tomorrow") {
+				forecastStart = 1
+				forecastRange = 1
+			} else { country = parts[2] }
 		}
 		if (len(parts) > 1) {
 			city := parts[1]
 			weather := GetWeather(parts[1], country)
+			if ((forecastStart+forecastRange) > len(weather.Forecast.Time)) {
+				s.ChannelMessageSend(m.ChannelID, "Can't get information in that timerange or for that city.")
+				return
+			}
 
 			//print out next 3 days
-			if (len(weather.Forecast.Time) > 3) {
+			if (len(weather.Forecast.Time) > forecastRange) {
 				s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Weather forecast for: **%s**", capitalize(city)))
-				for i := 0; i < 3; i++ {
+				for i := forecastStart; i < (forecastStart+forecastRange); i++ {
 					d := weather.Forecast.Time[i]
 					text := fmt.Sprintf("%s: **%s**        min: **%s**°C max: **%s**°C        **%s** from **%s**", days[i], capitalize(d.Symbol.Name), d.Temperature.Min, d.Temperature.Max, strings.ToLower(d.WindSpeed.Name), strings.ToLower(d.WindDirection.Name))
 					s.ChannelMessageSend(m.ChannelID, text)
 				}
-			} else { s.ChannelMessageSend(m.ChannelID, "Can't find information about this city.")
+			} else {
+				s.ChannelMessageSend(m.ChannelID, "Can't find information about this city.")
+				return
 		 }
 		}
 	}

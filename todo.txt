@@ -6,9 +6,8 @@
 	Today/Tomorrow argument
 	Hourly data
 
-!coin
-
-!dice (sides)
+!match "Summoner Name"
+  	lolnexus like actual match information
 
 !remember (key) (value)
 

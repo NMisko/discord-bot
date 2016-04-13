@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"math/rand"
+	"io"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/bwmarrin/discordgo"
@@ -17,9 +18,38 @@ import (
 var (
 	// discordgo session
 	discord *discordgo.Session
-
 	me *discordgo.User
+
+	DEFAULT_LOL_REGION string = "euw"
 )
+
+type Message interface {
+    Send(s *discordgo.Session, m *discordgo.MessageCreate)
+}
+
+type MixedMessage struct {
+     Content []Message
+}
+func (message MixedMessage) Send(s *discordgo.Session, m *discordgo.MessageCreate) {
+	for _, message := range message.Content {
+		message.Send(s, m)
+	}
+}
+//Put Message structs in jarvis.go file, keep functions here.
+type FileMessage struct {
+    file io.Reader
+    name string
+}
+func (f FileMessage) Send(s *discordgo.Session, m *discordgo.MessageCreate) {
+	s.ChannelFileSend(m.ChannelID, f.name, f.file)
+}
+
+type TextMessage struct {
+    text string
+}
+func (t TextMessage) Send(s *discordgo.Session, m *discordgo.MessageCreate) {
+	s.ChannelMessageSend(m.ChannelID, t.text)
+}
 
 func onReady(s *discordgo.Session, event *discordgo.Ready) {
 	log.Info("Recieved READY payload")
@@ -43,181 +73,88 @@ func onGuildCreate(s *discordgo.Session, event *discordgo.GuildCreate) {
 		}
 	}
 }
-func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
-	log.Info("message created: ", m.Content)
-	var (
-		//sound    *Sound
-		//stype    int = TYPE_AIRHORN
-		//khaled   bool
-		ourShard = true
-	)
 
-	if (len(m.Content) <= 0 || (m.Content[0] != '!' && m.Content[0] != '<')) { //@J.A.R.V.I.S = <@168313836951175168>
-		log.Info("not a command")
-		return
-	}
-	log.Info("valid command")
-
-	parts := strings.Split(strings.ToLower(m.Content), " ")
-	log.Info(parts)
-
-	channel, _ := discord.State.Channel(m.ChannelID)
-	if channel == nil {
-		log.WithFields(log.Fields{
-			"channel": m.ChannelID,
-			"message": m.ID,
-		}).Warning("Failed to grab channel")
-		return
-	}
-
-	guild, _ := discord.State.Guild(channel.GuildID)
-	if guild == nil {
-		log.WithFields(log.Fields{
-			"guild":   channel.GuildID,
-			"channel": channel,
-			"message": m.ID,
-		}).Warning("Failed to grab guild")
-		return
-	}
-
-	// If we're in sharding mode, test whether this message is relevant to us
-	if !shardContains(channel.GuildID) {
-		ourShard = false
-	}
-
-	if len(m.Mentions) > 0 {
-		if m.Mentions[0].ID == s.State.Ready.User.ID && m.Author.ID == OWNER && len(parts) > 0 {
-			if scontains(parts[len(parts)-1], "stats") && ourShard {
-				users := 0
-				for _, guild := range s.State.Ready.Guilds {
-					users += len(guild.Members)
-				}
-
-				s.ChannelMessageSend(m.ChannelID, fmt.Sprintf(
-					"I'm in %v servers with %v users.",
-					len(s.State.Ready.Guilds),
-					users))
-			} else if scontains(parts[len(parts)-1], "status") {
-				guilds := 0
-				for _, guild := range s.State.Ready.Guilds {
-					if shardContains(guild.ID) {
-						guilds += 1
-					}
-				}
-				s.ChannelMessageSend(m.ChannelID, fmt.Sprintf(
-					"Shard %v contains %v servers",
-					strings.Join(SHARDS, ","),
-					guilds))
-			} else if len(parts) >= 3 && scontains(parts[len(parts)-2], "die") {
-				shard := parts[len(parts)-1]
-				if len(SHARDS) == 0 || scontains(shard, SHARDS...) {
-					log.Info("Got DIE request, exiting...")
-					s.ChannelMessageSend(m.ChannelID, ":ok_hand: goodbye cruel world")
-					os.Exit(0)
-				}
-			} else if scontains(parts[len(parts)-1], "aps") && ourShard {
-				s.ChannelMessageSend(m.ChannelID, ":ok_hand: give me a sec m8")
-				go calculateAirhornsPerSecond(m.ChannelID)
-			} else if scontains(parts[len(parts)-1], "where") && ourShard {
-				s.ChannelMessageSend(m.ChannelID,
-					fmt.Sprintf("its a me, shard %v", string(guild.ID[len(guild.ID)-5])))
+func elo(input []string, s *discordgo.Session, m *discordgo.MessageCreate) {
+	region := DEFAULT_LOL_REGION
+	if (len(input) > 0) {
+		if (len(input) > 2) {
+			switch (strings.ToLower(input[1])) {
+				case "na": region = "na"
+				case "br": region = "br"
+				case "kr": region = ""
+				case "eune": region = "eune"
+				case "jp": region = "jp"
+				case "tr": region = "tr"
+				case "oce": region = "oce"
+				case "las": region = "las"
+				case "ru" : region = "ru"
 			}
-			return
 		}
-	}
 
-	if !ourShard {
-		return
-	}
+		name := strings.ToLower(input[0])
 
-	if parts[0] == "!elo" {
-		region := "euw"
-		if (len(parts) > 1) {
-			if (len(parts) > 2) {
-				switch (strings.ToLower(parts[2])) {
-					case "na": region = "na"
-					case "br": region = "br"
-					case "kr": region = ""
-					case "eune": region = "eune"
-					case "jp": region = "jp"
-					case "tr": region = "tr"
-					case "oce": region = "oce"
-					case "las": region = "las"
-					case "ru" : region = "ru"
-				}
-			}
-
-			name := strings.ToLower(parts[1])
-			if len(name) > 0 {
-				summoner := GetSummonerElo(parts[1], region)
-				if(summoner.rank == "") {
-					s.ChannelMessageSend(m.ChannelID, "Could not find player.")
-					return
-				}
-				s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("http:%s", summoner.rankImage))
-				if(summoner.rank != "Unranked") {
-					s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("**%s** %sLP", summoner.rank, summoner.lp))
-					s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Wins: **%s** Losses: **%s** Winrate: **%s**", summoner.wins, summoner.losses, strings.Join([]string{summoner.winratio, "%"}, "")))
-				} else {
-					s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("**%s**", summoner.rank))
-				}
-				if(name == "uznick") {
-					s.ChannelMessageSend(m.ChannelID, "But deserves Challenjour, Kappa.")
-				}
-				if(name == "mehdid") {
-					s.ChannelMessageSend(m.ChannelID, "also, best Amumu EUW")
-				}
-				if(name == "flakelol") {
-					s.ChannelMessageSend(m.ChannelID, "also, best Shen EUW")
-				}
-			}
-		return
-		} else {
-			return
-		}
-	}
-
-	if parts[0] == "!weather" {
-		forecastStart := 0; //Today
-		forecastRange := 3; //0,1,2
-		country := "de"
-		days := []string{"Today", "Tomorrow", "In two days", "In three days", "In four days", "In five days", "In six days", "In a week"}
-
-		if (len(parts) > 2) { //has 2 arguments
-			if (strings.ToLower(parts[2]) == "today") {
-				forecastRange = 1
-			} else if (strings.ToLower(parts[2]) == "tomorrow") {
-				forecastStart = 1
-				forecastRange = 1
-			} else { country = parts[2] }
-		}
-		if (len(parts) > 1) {
-			city := parts[1]
-			weather := GetWeather(parts[1], country)
-			if ((forecastStart+forecastRange) > len(weather.Forecast.Time)) {
-				s.ChannelMessageSend(m.ChannelID, "Can't get information in that timerange or for that city.")
+		if len(name) > 0 {
+			summoner := GetSummonerElo(name, region)
+			if(summoner.rank == "") {
+				s.ChannelMessageSend(m.ChannelID, "Could not find player.")
 				return
 			}
-
-			//print out next 3 days
-			if (len(weather.Forecast.Time) > forecastRange) {
-				s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Weather forecast for: **%s**", capitalize(city)))
-				for i := forecastStart; i < (forecastStart+forecastRange); i++ {
-					d := weather.Forecast.Time[i]
-					text := fmt.Sprintf("%s: **%s**        min: **%s**°C max: **%s**°C        **%s** from **%s**", days[i], capitalize(d.Symbol.Name), d.Temperature.Min, d.Temperature.Max, strings.ToLower(d.WindSpeed.Name), strings.ToLower(d.WindDirection.Name))
-					s.ChannelMessageSend(m.ChannelID, text)
-				}
+			s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("http:%s", summoner.rankImage))
+			if(summoner.rank != "Unranked") {
+				s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("**%s** %sLP", summoner.rank, summoner.lp))
+				s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Wins: **%s** Losses: **%s** Winrate: **%s**", summoner.wins, summoner.losses, strings.Join([]string{summoner.winratio, "%"}, "")))
 			} else {
-				s.ChannelMessageSend(m.ChannelID, "Can't find information about this city.")
-				return
-		 }
+				s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("**%s**", summoner.rank))
+			}
+			switch name {
+				case "uznick": s.ChannelMessageSend(m.ChannelID, "But deserves Challenjour, Kappa.")
+				case "mehdid": s.ChannelMessageSend(m.ChannelID, "also, best Amumu EUW")
+				case "flakelol": s.ChannelMessageSend(m.ChannelID, "also, best Shen EUW")
+			}
 		}
 	}
+	return
+}
 
-	//lastword := parts[len(parts)-1]
-	//lastletter := string(lastword[len(lastword)-1])
+func weather(input []string, s *discordgo.Session, m *discordgo.MessageCreate) {
+	forecastStart := 0; //Today
+	forecastRange := 3; //0,1,2
+	country := "de"
+	days := []string{"Today", "Tomorrow", "In two days", "In three days", "In four days", "In five days", "In six days", "In a week"}
 
-	if (parts[0] == "<@168313836951175168>" && string(parts[len(parts)-1][len(parts[len(parts)-1])-1]) == "?") {
+	if (len(input) > 1) { //has 2 arguments
+		if (strings.ToLower(input[1]) == "today") {
+			forecastRange = 1
+		} else if (strings.ToLower(input[1]) == "tomorrow") {
+			forecastStart = 1
+			forecastRange = 1
+		} else { country = input[1] }
+	}
+	if (len(input) > 0) {
+		city := input[0]
+		weather := GetWeather(city, country)
+		if ((forecastStart+forecastRange) > len(weather.Forecast.Time)) {
+			s.ChannelMessageSend(m.ChannelID, "Can't get information in that timerange or for that city.")
+			return
+		}
+
+		//print out next 3 days
+		if (len(weather.Forecast.Time) > forecastRange) {
+			s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Weather forecast for: **%s**", capitalize(city)))
+			for i := forecastStart; i < (forecastStart+forecastRange); i++ {
+				d := weather.Forecast.Time[i]
+				text := fmt.Sprintf("%s: **%s**        min: **%s**°C max: **%s**°C        **%s** from **%s**", days[i], capitalize(d.Symbol.Name), d.Temperature.Min, d.Temperature.Max, strings.ToLower(d.WindSpeed.Name), strings.ToLower(d.WindDirection.Name))
+				s.ChannelMessageSend(m.ChannelID, text)
+			}
+		} else {
+			s.ChannelMessageSend(m.ChannelID, "Can't find information about this city.")
+			return
+	 	}
+	}
+}
+
+func jarvis(input []string, s *discordgo.Session, m *discordgo.MessageCreate) {
+	if (string(input[len(input)-1][len(input[len(input)-1])-1]) == "?") {
 		//rand.Seed(50)
 		answers := []string {
 			"It is certain.",
@@ -248,56 +185,76 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		}
 	s.ChannelMessageSend(m.ChannelID, answers[rand.Intn(len(answers))])
 	}
+}
 
-	if (parts[0] == "!coin") {
-
+func coin(s *discordgo.Session, m *discordgo.MessageCreate) {
 	files := []string{
 		"images/Head.png",
 		"images/Tail.png",
 	}
-		file, err := os.Open(files[rand.Intn(len(files))])
-			if err != nil {
-    	log.Warning(err)}
-			s.ChannelFileSend(m.ChannelID, "Coin.png", file)
-	}
+	file, err := os.Open(files[rand.Intn(len(files))])
+	if err != nil { log.Warning(err) }
+	s.ChannelFileSend(m.ChannelID, "Coin.png", file)
+}
 
-	if (parts[0] == "!dice") {
-		answers := []string {
-			"1",
-			"2",
-			"3",
-			"4",
-			"5",
-			"6",
-		}
+func dice(s *discordgo.Session, m *discordgo.MessageCreate) {
+	answers := []string {
+		"1",
+		"2",
+		"3",
+		"4",
+		"5",
+		"6",
+	}
 	s.ChannelMessageSend(m.ChannelID, answers[rand.Intn(len(answers))])
+}
+
+func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
+	log.Info("message created: ", m.Content)
+	var (
+		ourShard = true
+	)
+
+	if (len(m.Content) <= 0 || (m.Content[0] != '!' && m.Content[0] != '<')) { //@J.A.R.V.I.S = <@168313836951175168>
+		return
+	}
+	parts := strings.Split(strings.ToLower(m.Content), " ")
+
+	channel, _ := discord.State.Channel(m.ChannelID)
+	if channel == nil {
+		log.WithFields(log.Fields{
+			"channel": m.ChannelID,
+			"message": m.ID,
+		}).Warning("Failed to grab channel")
+		return
 	}
 
-	// if scontains(parts[0], COMMANDS...) {
-	// 	// Support !airhorn <sound>
-	// 	if len(parts) > 1 {
-	// 		for _, s := range AIRHORNS {
-	// 			if parts[1] == s.Name {
-	// 				sound = s
-	// 			}
-	// 		}
-	//
-	// 		if sound == nil {
-	// 			return
-	// 		}
-	// 	}
-	//
-	// 	// Select mode
-	// 	if scontains(parts[0], "!cena", "!johncena", "!nycto") {
-	// 		stype = TYPE_CENA
-	// 	} else if scontains(parts[0], "!eb", "!ethanbradberry", "!h3h3") {
-	// 		stype = TYPE_ETHAN
-	// 	} else if scontains(parts[0], "!anotha", "!anothaone") {
-	// 		khaled = true
-	// 	}
-	//
-	// 	go enqueuePlay(m.Author, guild, sound, khaled, stype)
-	// }
+	guild, _ := discord.State.Guild(channel.GuildID)
+	if guild == nil {
+		log.WithFields(log.Fields{
+			"guild":   channel.GuildID,
+			"channel": channel,
+			"message": m.ID,
+		}).Warning("Failed to grab guild")
+		return
+	}
+
+	// If we're in sharding mode, test whether this message is relevant to us
+	if !shardContains(channel.GuildID) {
+		ourShard = false
+	}
+
+	if !ourShard {
+		return
+	}
+
+	switch parts[0] {
+		case "!elo": elo(parts[1:], s, m)
+		case "!weather": weather(parts[1:], s, m)
+		case "<@168313836951175168>": jarvis(parts[1:], s, m)
+		case "!coin": coin(s, m)
+		case "!dice": dice(s, m)
+	}
 }
 
 
@@ -328,31 +285,6 @@ func main() {
 				return
 			}
 		}
-	}
-
-	// Preload all the sounds
-	log.Info("Preloading sounds...")
-	for _, sound := range AIRHORNS {
-		AIRHORN_SOUND_RANGE += sound.Weight
-		sound.Load()
-	}
-
-	log.Info("Preloading loyalty...")
-	for _, sound := range KHALED {
-		KHALED_SOUND_RANGE += sound.Weight
-		sound.Load()
-	}
-
-	log.Info("PRELOADING THE JOHN CENA")
-	for _, sound := range CENA {
-		CENA_SOUND_RANGE += sound.Weight
-		sound.Load()
-	}
-
-	log.Info("I'm ethan bradberry!")
-	for _, sound := range ETHAN {
-		ETHAN_SOUND_RANGE += sound.Weight
-		sound.Load()
 	}
 
 	// If we got passed a redis server, try to connect
@@ -392,7 +324,7 @@ func main() {
 	}
 
 	// We're running!
-	log.Info("AIRHORNBOT is ready to horn it up.")
+	log.Info("JARVIS READY.")
 
 	// Wait for a signal to quit
 	c := make(chan os.Signal, 1)

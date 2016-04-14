@@ -82,6 +82,7 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	switch parts[0] {
 		case "!elo": elo(parts[1:], s, m)
+		case "!elo2": elo(parts[1:], s, m)
 		case "!weather": weather(parts[1:], s, m)
 		case "<@168313836951175168>": jarvis(parts[1:], s, m)
 		case "!coin": coin(s, m)

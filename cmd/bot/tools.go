@@ -98,3 +98,23 @@ func lowercase(s string) string {
     r, n := utf8.DecodeRuneInString(s)
     return string(unicode.ToLower(r)) + s[n:]
 }
+
+type Parser struct {
+    tokenIndex int
+    tokens []string
+    Token string
+}
+
+func (s *Parser) nextToken() bool {
+    s.tokenIndex = s.tokenIndex + 1
+    if(s.tokenIndex >= len(s.tokens)) {
+        return false
+    } else {
+        s.Token = s.tokens[s.tokenIndex]
+    }
+    return true
+}
+
+func NewParser(list []string) *Parser {
+    return &Parser{-1, list, ""}
+}

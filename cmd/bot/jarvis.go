@@ -42,83 +42,83 @@ var (
     }
 )
 
+// name [region]
 func elo(input []string, s *discordgo.Session, m *discordgo.MessageCreate) {
 	region := DEFAULT_LOL_REGION
-	if (len(input) > 0) {
-		if (len(input) > 2) {
-			switch (strings.ToLower(input[1])) {
-				case "na": region = "na"
-				case "br": region = "br"
-				case "kr": region = ""
-				case "eune": region = "eune"
-				case "jp": region = "jp"
-				case "tr": region = "tr"
-				case "oce": region = "oce"
-				case "las": region = "las"
-				case "ru" : region = "ru"
-			}
-		}
 
-		name := strings.ToLower(input[0])
+    p := NewParser(input)
+    if(!p.nextToken()) { return }
+    p.nextToken()
+    name := strings.ToLower(p.Token)
+    p.nextToken()
+    switch (strings.ToLower(p.Token)) {
+        case "na": region = "na"
+        case "br": region = "br"
+        case "kr": region = ""
+        case "eune": region = "eune"
+        case "jp": region = "jp"
+        case "tr": region = "tr"
+        case "oce": region = "oce"
+        case "las": region = "las"
+        case "ru" : region = "ru"
+    }
 
-		if len(name) > 0 {
-			summoner := GetSummonerElo(name, region)
-			if(summoner.rank == "") {
-				s.ChannelMessageSend(m.ChannelID, "Could not find player.")
-				return
-			}
-			s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("http:%s", summoner.rankImage))
-			if(summoner.rank != "Unranked") {
-				s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("**%s** %sLP", summoner.rank, summoner.lp))
-				s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Wins: **%s** Losses: **%s** Winrate: **%s**", summoner.wins, summoner.losses, strings.Join([]string{summoner.winratio, "%"}, "")))
-			} else {
-				s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("**%s**", summoner.rank))
-			}
-			switch name {
-				case "uznick": s.ChannelMessageSend(m.ChannelID, "But deserves Challenjour, Kappa.")
-				case "mehdid": s.ChannelMessageSend(m.ChannelID, "Also, best Amumu EUW.")
-				case "flakelol": s.ChannelMessageSend(m.ChannelID, "Also, best Shen EUW.")
-			}
-		}
-	}
-	return
+    summoner := GetSummonerElo(name, region)
+    if(summoner.rank == "") {
+        s.ChannelMessageSend(m.ChannelID, "Could not find player.")
+        return
+    }
+    s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("http:%s", summoner.rankImage))
+    if(summoner.rank != "Unranked") {
+        s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("**%s** %sLP", summoner.rank, summoner.lp))
+        s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Wins: **%s** Losses: **%s** Winrate: **%s**", summoner.wins, summoner.losses, strings.Join([]string{summoner.winratio, "%"}, "")))
+    } else {
+        s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("**%s**", summoner.rank))
+    }
+    switch name {
+        case "uznick": s.ChannelMessageSend(m.ChannelID, "But deserves Challenjour, Kappa.")
+        case "mehdid": s.ChannelMessageSend(m.ChannelID, "Also, best Amumu EUW.")
+        case "flakelol": s.ChannelMessageSend(m.ChannelID, "Also, best Shen EUW.")
+    }
 }
 
+// city [time|country] [country]
 func weather(input []string, s *discordgo.Session, m *discordgo.MessageCreate) {
-	forecastStart := 0; //Today
-	forecastRange := 3; //0,1,2
-	country := "de"
-	days := []string{"Today", "Tomorrow", "In two days", "In three days", "In four days", "In five days", "In six days", "In a week"}
+    setTime := false
+    country := "de"
+    forecastStart := 0; //Today
+    forecastRange := 3; //0,1,2
+    days := []string{"Today", "Tomorrow", "In two days", "In three days", "In four days", "In five days", "In six days", "In a week"}
 
-	if (len(input) > 1) { //has 2 arguments
-		if (strings.ToLower(input[1]) == "today") {
-			forecastRange = 1
-		} else if (strings.ToLower(input[1]) == "tomorrow") {
-			forecastStart = 1
-			forecastRange = 1
-		} else { country = input[1] }
-	}
-	if (len(input) > 0) {
-		city := input[0]
-		weather := GetWeather(city, country)
-		if ((forecastStart+forecastRange) > len(weather.Forecast.Time)) {
-			s.ChannelMessageSend(m.ChannelID, "Can't get information in that timerange or for that city.")
-			return
-		}
+    p := NewParser(input)
+    if (!p.nextToken()) {return}
+    city := p.Token
 
-		//print out next 3 days
-		if (len(weather.Forecast.Time) > forecastRange) {
-			s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Weather forecast for: **%s**", capitalize(city)))
-			for i := forecastStart; i < (forecastStart+forecastRange); i++ {
-				d := weather.Forecast.Time[i]
-				text := fmt.Sprintf("%s: **%s**        min: **%s**°C max: **%s**°C        **%s** from **%s**", days[i], capitalize(d.Symbol.Name), d.Temperature.Min, d.Temperature.Max, strings.ToLower(d.WindSpeed.Name), strings.ToLower(d.WindDirection.Name))
-				s.ChannelMessageSend(m.ChannelID, text)
-			}
-		} else {
-			s.ChannelMessageSend(m.ChannelID, "Can't find information about this city.")
-			return
-	 	}
-	}
+    if(p.nextToken()) {
+        switch strings.ToLower(p.Token){
+            case "today": forecastRange = 1; setTime = true
+            case "tomorrow": forecastRange = 1; forecastStart = 1; setTime = true
+            default: country = p.Token
+        }
+    }
+    if(p.nextToken() && setTime) {country = p.Token}
+
+    weather := GetWeather(city, country)
+    if ((forecastStart+forecastRange) > len(weather.Forecast.Time)) {
+        s.ChannelMessageSend(m.ChannelID, "Can't get information in that timerange or for that city.")
+        return
+    }
+    if (len(weather.Forecast.Time) > forecastRange) {
+        s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Weather forecast for: **%s**", capitalize(city)))
+        for i := forecastStart; i < (forecastStart+forecastRange); i++ {
+            d := weather.Forecast.Time[i]
+            text := fmt.Sprintf("%s: **%s**        min: **%s**°C max: **%s**°C        **%s** from **%s**", days[i], capitalize(d.Symbol.Name), d.Temperature.Min, d.Temperature.Max, strings.ToLower(d.WindSpeed.Name), strings.ToLower(d.WindDirection.Name))
+            s.ChannelMessageSend(m.ChannelID, text)
+        }
+    } else {
+        s.ChannelMessageSend(m.ChannelID, "Can't find information about this city.")
+        return
+    }
 }
 
 func jarvis(input []string, s *discordgo.Session, m *discordgo.MessageCreate) {

@@ -5,6 +5,13 @@ import (
     "github.com/bwmarrin/discordgo"
     "strings"
     "os"
+    "os/exec"
+    "io/ioutil"
+    "image"
+    "image/jpeg"
+    "image/png"
+    "bytes"
+
     log "github.com/Sirupsen/logrus"
 )
 var (
@@ -40,6 +47,7 @@ var (
         "Outlook not so good.",
         "Very doubtful.",
     }
+    PATH_TO_CLASSIFY_EXEC = "tensorflow/imagenet/classify_image.py"
 )
 
 // name [region]
@@ -136,4 +144,64 @@ func coin(s *discordgo.Session, m *discordgo.MessageCreate) {
 func dice(s *discordgo.Session, m *discordgo.MessageCreate) {
 	answers := []string { "1", "2", "3", "4", "5", "6",}
 	s.ChannelMessageSend(m.ChannelID, answers[rand.Intn(len(answers))])
+}
+
+func classifyImage(input []string, s *discordgo.Session, m *discordgo.MessageCreate) {
+    local := fmt.Sprintf("temp/%s.jpg", m.ID)
+    localConverted := fmt.Sprintf("temp/%sC.jpg", m.ID)
+    image.RegisterFormat("png", "png", png.Decode, png.DecodeConfig)
+
+    p := NewParser(input)
+    if (!p.nextToken()) {return}
+
+    log.Info("Starting classification of ", input)
+
+    //Download file into local (hopefully unique file)
+    err := DownloadFile(p.Token, local)
+    if(err != nil) {
+        log.Warning(err)
+        return
+    }
+
+    //Read local file again
+    imgBuffer, err := ioutil.ReadFile(local)
+    if err != nil {
+            log.Warning("Can't read local file")
+            return
+    }
+
+    reader := bytes.NewReader(imgBuffer)
+
+    //Decode into image type
+    img, _, err := image.Decode(reader)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+    //Create file that'll contain converted image
+    out, err := os.Create(localConverted)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	defer out.Close()
+
+    //Convert image to jpeg
+    err = jpeg.Encode(out, img, nil)
+    if err != nil {
+        log.Println(err)
+        return
+    }
+
+    //Classify image
+    cmd := exec.Command("python", PATH_TO_CLASSIFY_EXEC, "--image_file", localConverted)
+    response, err := cmd.Output()
+
+    log.Info(string(response))
+    log.Warning(err)
+    s.ChannelMessageSend(m.ChannelID, "Results: ")
+    s.ChannelMessageSend(m.ChannelID, string(response))
+
+    log.Info("Finished classification.")
 }

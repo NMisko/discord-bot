@@ -50,7 +50,7 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if (len(m.Content) <= 0 || (m.Content[0] != '!' && m.Content[0] != '<')) { //@J.A.R.V.I.S = <@168313836951175168>
 		return
 	}
-	parts := strings.Split(strings.ToLower(m.Content), " ")
+	parts := strings.Split(m.Content, " ")
 
 	channel, _ := discord.State.Channel(m.ChannelID)
 	if channel == nil {
@@ -80,13 +80,13 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 
-	switch parts[0] {
+	switch strings.ToLower(parts[0]) {
 		case "!elo": elo(parts[1:], s, m)
-		case "!elo2": elo(parts[1:], s, m)
 		case "!weather": weather(parts[1:], s, m)
 		case "<@168313836951175168>": jarvis(parts[1:], s, m)
 		case "!coin": coin(s, m)
 		case "!dice": dice(s, m)
+		case "!analyze": classifyImage(parts[1:], s, m)
 	}
 }
 

@@ -10,6 +10,8 @@ import (
     "unicode"
     "unicode/utf8"
     "fmt"
+    "os"
+    "io"
 
     "golang.org/x/net/html"
 
@@ -37,6 +39,16 @@ func ReadWebsite(url string) (out *html.Node) {
     }
 
     return root
+}
+
+func DownloadFile(url string, local string) error {
+    resp, err := http.Get(url)
+    if (err != nil) {return err}
+    file, err := os.Create(local)
+    if (err != nil) {return err}
+    defer file.Close()
+    _, err = io.Copy(file, resp.Body)
+    return err
 }
 
 func DWebsite(url string) (out string){

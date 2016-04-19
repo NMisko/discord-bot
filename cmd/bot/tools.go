@@ -9,6 +9,7 @@ import (
     "strings"
     "unicode"
     "unicode/utf8"
+    "fmt"
 
     "golang.org/x/net/html"
 
@@ -98,6 +99,13 @@ func lowercase(s string) string {
     r, n := utf8.DecodeRuneInString(s)
     return string(unicode.ToLower(r)) + s[n:]
 }
+
+func bold(s string) string {
+	if (s != "") {
+		return fmt.Sprintf("**%s**", s)
+	} else {return "[no data]"}
+}
+
 
 type Parser struct {
     tokenIndex int

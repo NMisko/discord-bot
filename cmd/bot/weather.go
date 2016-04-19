@@ -8,6 +8,10 @@ import (
     log "github.com/Sirupsen/logrus"
     "encoding/xml"
 )
+
+var (
+    KEY string = "babe442a111d8e2dc0d9b9145a6fc1ae"
+)
 //layout: http://api.openweathermap.org/data/2.5/forecast/daily?q=stuttgart&mode=xml&units=metric&cnt=7&appid=babe442a111d8e2dc0d9b9145a6fc1ae
 type Weather struct {
     Forecast struct {
@@ -32,7 +36,6 @@ type Weather struct {
 }
 
 func GetWeather(city string, country string) Weather {
-    KEY := "babe442a111d8e2dc0d9b9145a6fc1ae"
     resp, err := http.Get(fmt.Sprintf("http://api.openweathermap.org/data/2.5/forecast/daily?q=%s,%s&mode=xml&units=metric&cnt=7&appid=%s", city, country, KEY))
     if err != nil {
             log.WithFields(log.Fields{

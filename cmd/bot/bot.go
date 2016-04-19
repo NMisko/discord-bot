@@ -86,7 +86,7 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		case "<@168313836951175168>": jarvis(parts[1:], s, m)
 		case "!coin": coin(s, m)
 		case "!dice": dice(s, m)
-		case "!analyze": classifyImage(parts[1:], s, m)
+		case "!whatis": classifyImage(parts[1:], s, m)
 	}
 }
 

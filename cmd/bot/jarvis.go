@@ -11,6 +11,7 @@ import (
     "image/jpeg"
     "image/png"
     "bytes"
+    "regexp"
 
     log "github.com/Sirupsen/logrus"
 )
@@ -201,7 +202,23 @@ func classifyImage(input []string, s *discordgo.Session, m *discordgo.MessageCre
     log.Info(string(response))
     log.Warning(err)
     s.ChannelMessageSend(m.ChannelID, "Results: ")
-    s.ChannelMessageSend(m.ChannelID, string(response))
+
+    message := ""
+    nameRegex := regexp.MustCompile(`([[a-zA-Z]|,|\s)*[a-zA-Z]`)
+    scoreRegex := regexp.MustCompile("[0-9][0-9]")
+
+    lines := strings.Split(string(response), "\n")
+    for i := 0; i < len(lines)-1; i++ {
+        name := nameRegex.FindString(lines[i])
+        names := strings.Split(name, ",")
+        for j := 0; j < len(names); j++ {
+                if(j < len(names)-1) {message += fmt.Sprintf("%s,", bold(capitalize(strings.Trim(names[j], " "))))
+                } else {message += bold(capitalize(strings.Trim(names[j], " ")))}
+        }
+        score := scoreRegex.FindString(lines[i])
+        message += fmt.Sprintf(" (%s%%)\n", score)
+    }
+    s.ChannelMessageSend(m.ChannelID, message)
 
     log.Info("Finished classification.")
 }

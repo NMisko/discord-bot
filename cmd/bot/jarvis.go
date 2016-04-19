@@ -220,5 +220,11 @@ func classifyImage(input []string, s *discordgo.Session, m *discordgo.MessageCre
     }
     s.ChannelMessageSend(m.ChannelID, message)
 
+    //delete local images
+    err = os.Remove(local)
+    if err != nil {log.Warning(err)}
+    err = os.Remove(localConverted)
+    if err != nil {log.Warning(err)}
+
     log.Info("Finished classification.")
 }

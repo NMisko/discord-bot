@@ -101,6 +101,11 @@ func main() {
 	)
 	flag.Parse()
 
+	if(*Token == "") {
+		flag.PrintDefaults()
+		return
+	}
+
 	if *Owner != "" {
 		OWNER = *Owner
 	}

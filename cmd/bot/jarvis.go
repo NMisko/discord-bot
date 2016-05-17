@@ -4,6 +4,7 @@ import (
     "math/rand"
     "github.com/bwmarrin/discordgo"
     "strings"
+    "strconv"
     "os"
     "os/exec"
     "io/ioutil"
@@ -52,7 +53,7 @@ var (
 )
 
 // name [region]
-func elo(input []string, s *discordgo.Session, m *discordgo.MessageCreate) {
+func eloDEPRECATED(input []string, s *discordgo.Session, m *discordgo.MessageCreate) {
 	region := DEFAULT_LOL_REGION
 
     p := NewParser(input)
@@ -90,6 +91,47 @@ func elo(input []string, s *discordgo.Session, m *discordgo.MessageCreate) {
         case "flakelol": s.ChannelMessageSend(m.ChannelID, "Also, best Shen EUW.")
     }
 }
+
+func elo(input []string, s *discordgo.Session, m *discordgo.MessageCreate, riotkey string) {
+	region := DEFAULT_LOL_REGION
+
+    p := NewParser(input)
+    if(!p.nextToken()) { return }
+    p.nextToken()
+    name := strings.ToLower(p.Token)
+    p.nextToken()
+    switch (strings.ToLower(p.Token)) {
+        case "na": region = "na"
+        case "br": region = "br"
+        case "kr": region = ""
+        case "eune": region = "eune"
+        case "jp": region = "jp"
+        case "tr": region = "tr"
+        case "oce": region = "oce"
+        case "las": region = "las"
+        case "ru" : region = "ru"
+    }
+    summoner := GetSummoner(name, region, riotkey)
+    if (summoner.ID == 0) {
+        s.ChannelMessageSend(m.ChannelID, "Could not find player.")
+        return
+    }
+    league := GetLeague(strconv.Itoa(summoner.ID), region, riotkey)
+    //s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("http:%s", summoner.rankImage))
+    if(league.Tier != "Unranked") {
+        entry := league.Entry[0]
+        s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("**%s %s** %sLP", capitalize(strings.ToLower(league.Tier)), entry.Division, strconv.Itoa(entry.LP)))
+        s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Wins: **%s** Losses: **%s**", strconv.Itoa(entry.Wins), strconv.Itoa(entry.Losses)))
+    } else {
+        s.ChannelMessageSend(m.ChannelID, "**Unranked**")
+    }
+    switch name {
+        case "uznick": s.ChannelMessageSend(m.ChannelID, "But deserves Challenjour, Kappa.")
+        case "mehdid": s.ChannelMessageSend(m.ChannelID, "Also, best Amumu EUW.")
+        case "flakelol": s.ChannelMessageSend(m.ChannelID, "Also, best Shen EUW.")
+    }
+}
+
 
 // city [time|country] [country]
 func weather(input []string, s *discordgo.Session, m *discordgo.MessageCreate) {

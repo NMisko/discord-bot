@@ -3,6 +3,10 @@ package main
 import (
 	"fmt"
 	"regexp"
+	"net/http"
+	"encoding/json"
+	"io/ioutil"
+
 
 	"golang.org/x/net/html"
 	"github.com/yhat/scrape"
@@ -66,4 +70,60 @@ func GetSummonerElo(summonername string, region string) Summoner {
     summoner := Summoner{rank, rankImage, wins, losses, winratio, lp}
     log.Info(summoner)
     return summoner
+}
+
+type RiotSummoner struct {
+    Name string `json:"name"`
+    ID int `json:"id"`
+}
+
+
+func GetSummoner(summoner string, region string, key string) RiotSummoner {
+    jsonMessage := riotApiCall(fmt.Sprintf("/api/lol/%s/v1.4/summoner/by-name/%s", region, summoner), region, key)
+    var w map[string]RiotSummoner
+    json.Unmarshal(jsonMessage, &w)
+    log.Info(w)
+
+    return w[lowercase(summoner)]
+}
+
+type RiotLeague struct {
+    Tier string `json:"tier"`
+    Name string `json:"name"`
+    Entry []struct {
+        LP int `json:"leaguePoints"`
+        Division string `json:"division"`
+        Wins int `json:"wins"`
+        Losses int `json:"losses"`
+    } `json:"entries"`
+}
+
+func GetLeague(summonerid string, region string, key string) RiotLeague {
+	jsonMessage := riotApiCall(fmt.Sprintf("/api/lol/%s/v2.5/league/by-summoner/%s/entry", region, summonerid), region, key)
+
+	var w map[string][]RiotLeague
+	json.Unmarshal(jsonMessage, &w)
+	log.Info(w)
+
+	if(len(w[summonerid]) < 1) {
+		out := RiotLeague{Tier: "Unranked"}
+		return out
+	}
+    return w[summonerid][0]
+}
+
+func riotApiCall(call string, region string, key string) []byte {
+	url := fmt.Sprintf("https://%s.api.pvp.net%s?api_key=%s", region, call, key)
+	log.Info(url)
+	resp, err := http.Get(url)
+
+	if err != nil {
+			log.WithFields(log.Fields{
+				"error": err,
+			}).Warning("Failed to GET Summoner: ")
+	}
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+
+	return body
 }

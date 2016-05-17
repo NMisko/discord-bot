@@ -16,6 +16,7 @@ var (
 	// discordgo session
 	discord *discordgo.Session
 	me *discordgo.User
+	RiotKey = flag.String("k", "", "Riot API Key")
 )
 
 func onReady(s *discordgo.Session, event *discordgo.Ready) {
@@ -81,11 +82,11 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 
 	switch strings.ToLower(parts[0]) {
-		case "!elo": elo(parts[1:], s, m)
 		case "!weather": weather(parts[1:], s, m)
 		case "<@168313836951175168>": jarvis(parts[1:], s, m)
 		case "!coin": coin(s, m)
 		case "!dice": dice(s, m)
+		case "!elo": elo(parts[1:], s, m, *RiotKey)
 		//case "!whatis": classifyImage(parts[1:], s, m)
 	}
 }
@@ -101,7 +102,7 @@ func main() {
 	)
 	flag.Parse()
 
-	if(*Token == "") {
+	if(*Token == "" || *RiotKey == "") {
 		flag.PrintDefaults()
 		return
 	}

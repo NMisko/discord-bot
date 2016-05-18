@@ -4,6 +4,7 @@ import (
 	"flag"
 	"os"
 	"os/signal"
+	"os/exec"
 	"strconv"
 	"strings"
 
@@ -17,6 +18,11 @@ var (
 	discord *discordgo.Session
 	me *discordgo.User
 	RiotKey = flag.String("k", "", "Riot API Key")
+
+	ADMINS = []string {
+		"118830934710681602", //Beni
+		"118641605837062144", //Nicola
+	}
 )
 
 func onReady(s *discordgo.Session, event *discordgo.Ready) {
@@ -44,13 +50,20 @@ func onGuildCreate(s *discordgo.Session, event *discordgo.GuildCreate) {
 
 func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	log.Info("message created: ", m.Content)
+	log.Info("Author: ", m.Author.ID)
 	var (
 		ourShard = true
+		adminMode = false
 	)
 
 	if (len(m.Content) <= 0 || (m.Content[0] != '!' && m.Content[0] != '<')) { //@J.A.R.V.I.S = <@168313836951175168>
 		return
 	}
+
+	if(contains(m.Author.ID, ADMINS)) {
+		adminMode = true
+	}
+
 	parts := strings.Split(m.Content, " ")
 
 	channel, _ := discord.State.Channel(m.ChannelID)
@@ -88,6 +101,17 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		case "!dice": dice(s, m)
 		case "!elo": elo(parts[1:], s, m, *RiotKey)
 		//case "!whatis": classifyImage(parts[1:], s, m)
+		case "!update": update(adminMode, s, m)
+	}
+}
+
+func update(admin bool, s *discordgo.Session, m *discordgo.MessageCreate) {
+	if(admin) {
+		log.Info("Updating...")
+		cmd := exec.Command("./update.sh")
+		os.Exit(0)
+	} else {
+		s.ChannelMessageSend(m.ID, "You can't do that...")
 	}
 }
 

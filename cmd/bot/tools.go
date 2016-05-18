@@ -100,6 +100,24 @@ func scontains(key string, options ...string) bool {
 	return false
 }
 
+func contains(key string, options []string) bool {
+	for _, item := range options {
+		if item == key {
+			return true
+		}
+	}
+	return false
+}
+
+func icontains(s []int, e int) bool {
+    for _, a := range s {
+        if a == e {
+            return true
+        }
+    }
+    return false
+}
+
 func capitalize(s string) string {
     if s == "" { return s }
     r, n := utf8.DecodeRuneInString(s)

@@ -4,7 +4,6 @@ import (
 	"flag"
 	"os"
 	"os/signal"
-	"os/exec"
 	"strconv"
 	"strings"
 

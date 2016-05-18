@@ -100,22 +100,22 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		case "!coin": coin(s, m)
 		case "!dice": dice(s, m)
 		case "!elo": elo(parts[1:], s, m, *RiotKey)
-		case "!kappa": log.Info("KappaPride")
 		//case "!whatis": classifyImage(parts[1:], s, m)
 		case "!update": update(adminMode, s, m)
 	}
 }
 
+//This should update stuff
 func update(admin bool, s *discordgo.Session, m *discordgo.MessageCreate) {
-	if(admin) {
-		log.Info("Updating...")
-		cmd := exec.Command("./update.sh")
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		cmd.Run()
-	} else {
-		s.ChannelMessageSend(m.ID, "You can't do that...")
-	}
+	// if(admin) {
+	// 	log.Info("Updating...")
+	// 	cmd := exec.Command("./update.sh")
+	// 	cmd.Stdout = os.Stdout
+	// 	cmd.Stderr = os.Stderr
+	// 	cmd.Run()
+	// } else {
+	// 	s.ChannelMessageSend(m.ID, "You can't do that...")
+	// }
 }
 
 

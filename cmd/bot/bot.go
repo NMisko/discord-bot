@@ -108,8 +108,10 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 func update(admin bool, s *discordgo.Session, m *discordgo.MessageCreate) {
 	if(admin) {
 		log.Info("Updating...")
-		exec.Command("./update.sh")
-		os.Exit(0)
+		cmd := exec.Command("./update.sh")
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		cmd.Run()
 	} else {
 		s.ChannelMessageSend(m.ID, "You can't do that...")
 	}

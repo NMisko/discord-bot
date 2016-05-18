@@ -100,6 +100,7 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		case "!coin": coin(s, m)
 		case "!dice": dice(s, m)
 		case "!elo": elo(parts[1:], s, m, *RiotKey)
+		case "!kappa": log.Info("KappaPride")
 		//case "!whatis": classifyImage(parts[1:], s, m)
 		case "!update": update(adminMode, s, m)
 	}

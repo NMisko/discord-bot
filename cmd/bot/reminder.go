@@ -10,7 +10,7 @@ import (
 )
 
 var (
-    reminders [50]Reminder
+    reminders [20]Reminder
 )
 
 type Reminder struct {
@@ -54,13 +54,16 @@ func reminderService(t time.Ticker) {
 }
 
 func addReminder(d time.Duration, text string, channelid string, authorid string) {
+    addedreminder := false
     log.Info("adding reminder ", d ," : ",  text)
     future := time.Now().Add(d)
     log.Info(future)
     for i, r := range reminders {
         if(r.Moment.IsZero()) {
             reminders[i] = Reminder{future, text, channelid, authorid}
+            addedreminder = true
             break
         }
     }
+    if(!addedreminder) {discord.ChannelMessageSend(channelid, fmt.Sprintf("Too many reminders at once. NotLikeThis"))}
 }

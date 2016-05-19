@@ -6,6 +6,7 @@ import (
 	"os/signal"
 	"strconv"
 	"strings"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/bwmarrin/discordgo"
@@ -101,6 +102,7 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		case "!elo": elo(parts[1:], s, m, *RiotKey)
 		//case "!whatis": classifyImage(parts[1:], s, m)
 		case "!update": update(adminMode, s, m)
+		case "!remindme": remindme(parts[1:], s, m)
 	}
 }
 
@@ -187,6 +189,9 @@ func main() {
 		}).Fatal("Failed to create discord websocket connection")
 		return
 	}
+
+	t := time.NewTicker(time.Duration(1) * time.Second)
+	go reminderService(*t)
 
 	// We're running!
 	log.Info("JARVIS READY.")

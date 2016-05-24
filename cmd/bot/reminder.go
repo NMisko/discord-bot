@@ -24,14 +24,14 @@ func remindme(input []string, s *discordgo.Session, m *discordgo.MessageCreate) 
 	var i int
 	var j string
 	if (len(input) < 2) {
-		s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("usage: !remindme <seconds> <message>"))
+		s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("usage: !remindme <seconds> <message> or !rm <seconds> <message>"))
         return
 	}
 	_, err := fmt.Sscanf(input[0], "%d", &i)
 	j = strings.Join(input[1:], " ")
 
 	if (err != nil) {
-		s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("usage: !remindme <seconds> <message>"))
+		s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("usage: !remindme <seconds> <message> or !rm <seconds> <message>"))
         return
     }
 

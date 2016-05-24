@@ -103,6 +103,7 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		//case "!whatis": classifyImage(parts[1:], s, m)
 		case "!update": update(adminMode, s, m)
 		case "!remindme": remindme(parts[1:], s, m)
+		case "!rm": remindme(parts[1:], s, m)
 	}
 }
 

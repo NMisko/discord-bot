@@ -10,7 +10,6 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/bwmarrin/discordgo"
-	redis "gopkg.in/redis.v3"
 )
 
 var (
@@ -22,6 +21,14 @@ var (
 	ADMINS = []string {
 		"118830934710681602", //Beni
 		"118641605837062144", //Nicola
+	}
+
+	RESTRICTED = []string {
+		"121687102114103298", //Salem
+	}
+
+	BANNED = []string {
+
 	}
 )
 
@@ -64,6 +71,8 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		adminMode = true
 	}
 
+
+
 	parts := strings.Split(m.Content, " ")
 
 	channel, _ := discord.State.Channel(m.ChannelID)
@@ -94,6 +103,10 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 
+	if(contains(m.Author.ID, BANNED)) {
+		return
+	}
+
 	switch strings.ToLower(parts[0]) {
 		case "!weather": weather(parts[1:], s, m)
 		case "<@168313836951175168>": jarvis(parts[1:], s, m)
@@ -104,6 +117,16 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		case "!update": update(adminMode, s, m)
 		case "!remindme": remindme(parts[1:], s, m)
 		case "!rm": remindme(parts[1:], s, m)
+	}
+
+	//My ears
+	if(contains(m.Author.ID, RESTRICTED)) {
+		return
+	}
+
+	switch strings.ToLower(parts[0]) {
+		case "!play": go queueYoutube(parts[1:], s, m, guild)
+		case "!skip": nextYoutube(s, m, guild)
 	}
 }
 
@@ -124,7 +147,7 @@ func update(admin bool, s *discordgo.Session, m *discordgo.MessageCreate) {
 func main() {
 	var (
 		Token = flag.String("t", "", "Discord Authentication Token")
-		Redis = flag.String("r", "", "Redis Connection String")
+		//Redis = flag.String("r", "", "Redis Connection String")
 		Shard = flag.String("s", "", "Integers to shard by")
 		Owner = flag.String("o", "", "Owner ID")
 		err   error
@@ -155,19 +178,19 @@ func main() {
 		}
 	}
 
-	// If we got passed a redis server, try to connect
-	if *Redis != "" {
-		log.Info("Connecting to redis...")
-		rcli = redis.NewClient(&redis.Options{Addr: *Redis, DB: 0})
-		_, err = rcli.Ping().Result()
-
-		if err != nil {
-			log.WithFields(log.Fields{
-				"error": err,
-			}).Fatal("Failed to connect to redis")
-			return
-		}
-	}
+	// // If we got passed a redis server, try to connect
+	// if *Redis != "" {
+	// 	log.Info("Connecting to redis...")
+	// 	rcli = redis.NewClient(&redis.Options{Addr: *Redis, DB: 0})
+	// 	_, err = rcli.Ping().Result()
+	//
+	// 	if err != nil {
+	// 		log.WithFields(log.Fields{
+	// 			"error": err,
+	// 		}).Fatal("Failed to connect to redis")
+	// 		return
+	// 	}
+	// }
 
 	// Create a discord session
 	log.Info("Starting discord session...")

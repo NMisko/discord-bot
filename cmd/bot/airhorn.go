@@ -6,55 +6,27 @@ import (
     "io"
     "os/exec"
     "time"
-    "strconv"
 
     log "github.com/Sirupsen/logrus"
     "github.com/bwmarrin/discordgo"
     "github.com/layeh/gopus"
-    redis "gopkg.in/redis.v3"
 )
 
 var (
     // Map of Guild id's to *Play channels, used for queuing and rate-limiting guilds
     queues map[string]chan *Play = make(map[string]chan *Play)
 
-    // Sound attributes
-    AIRHORN_SOUND_RANGE = 0
-    KHALED_SOUND_RANGE  = 0
-    CENA_SOUND_RANGE    = 0
-    ETHAN_SOUND_RANGE   = 0
-
-    // Sound encoding settings
-    BITRATE        = 128
-    MAX_QUEUE_SIZE = 6
-
-    // Sound Types
-    TYPE_AIRHORN = 0
-    TYPE_KHALED  = 1
-    TYPE_CENA    = 2
-    TYPE_ETHAN   = 3
-
-    // Redis client connection (used for stats)
-    rcli *redis.Client
-
     // Owner
     OWNER string
 
-    // Shard (or -1)
+    // Sound encoding settings
+	BITRATE        = 128
+	MAX_QUEUE_SIZE = 6
+
+    //Shard (or -1)
     SHARDS []string = make([]string, 0)
 
-    // Commands
-    COMMANDS []string = []string{
-    /*"!airhorn",
-    "!anotha",
-    "!anothaone",
-    "!cena",
-    "!johncena",
-    "!eb",
-    "!ethanbradberry",
-    "!h3h3",
-    "!nycto",*/
-    }
+    skip bool = false
 )
 
 // Play represents an individual use of the !airhorn command
@@ -63,26 +35,11 @@ type Play struct {
 	ChannelID string
 	UserID    string
 	Sound     *Sound
-
-	// If true, this was a forced play using a specific airhorn sound name
-	Forced bool
-
-	// If true, we need to appreciate this value
-	Khaled bool
 }
 
 // Sound represents a sound clip
 type Sound struct {
 	Name string
-
-	// Weight adjust how likely it is this song will play, higher = more likely
-	Weight int
-
-	// Delay (in milliseconds) for the bot to wait before sending the disconnect request
-	PartDelay int
-
-	// Sound Type
-	Type int
 
 	// Channel used for the encoder routine
 	encodeChan chan []int16
@@ -91,63 +48,15 @@ type Sound struct {
 	buffer [][]byte
 }
 
-func createSound(Name string, Weight int, PartDelay int, Type int) *Sound {
+func createSound(Name string) *Sound {
 	return &Sound{
 		Name:       Name,
-		Weight:     Weight,
-		PartDelay:  PartDelay,
-		Type:       Type,
 		encodeChan: make(chan []int16, 10),
 		buffer:     make([][]byte, 0),
 	}
 }
 
-// Array of all the sounds we have
-var AIRHORNS []*Sound = []*Sound{
-	createSound("default", 1000, 250, TYPE_AIRHORN),
-	createSound("reverb", 800, 250, TYPE_AIRHORN),
-	createSound("spam", 800, 0, TYPE_AIRHORN),
-	createSound("tripletap", 800, 250, TYPE_AIRHORN),
-	createSound("fourtap", 800, 250, TYPE_AIRHORN),
-	createSound("distant", 500, 250, TYPE_AIRHORN),
-	createSound("echo", 500, 250, TYPE_AIRHORN),
-	createSound("clownfull", 250, 250, TYPE_AIRHORN),
-	createSound("clownshort", 250, 250, TYPE_AIRHORN),
-	createSound("clownspam", 250, 0, TYPE_AIRHORN),
-	createSound("horn_highfartlong", 200, 250, TYPE_AIRHORN),
-	createSound("horn_highfartshort", 200, 250, TYPE_AIRHORN),
-	createSound("midshort", 100, 250, TYPE_AIRHORN),
-	createSound("truck", 10, 250, TYPE_AIRHORN),
-}
 
-var KHALED []*Sound = []*Sound{
-	createSound("one", 1, 250, TYPE_KHALED),
-	createSound("one_classic", 1, 250, TYPE_KHALED),
-	createSound("one_echo", 1, 250, TYPE_KHALED),
-}
-
-var CENA []*Sound = []*Sound{
-	createSound("airhorn", 1, 250, TYPE_CENA),
-	createSound("echo", 1, 250, TYPE_CENA),
-	createSound("full", 1, 250, TYPE_CENA),
-	createSound("jc", 1, 250, TYPE_CENA),
-	createSound("nameis", 1, 250, TYPE_CENA),
-	createSound("spam", 1, 250, TYPE_CENA),
-}
-
-var ETHAN []*Sound = []*Sound{
-	createSound("areyou_classic", 100, 250, TYPE_ETHAN),
-	createSound("areyou_condensed", 100, 250, TYPE_ETHAN),
-	createSound("areyou_crazy", 100, 250, TYPE_ETHAN),
-	createSound("areyou_ethan", 100, 250, TYPE_ETHAN),
-	createSound("classic", 100, 250, TYPE_ETHAN),
-	createSound("echo", 100, 250, TYPE_ETHAN),
-	createSound("high", 100, 250, TYPE_ETHAN),
-	createSound("slowandlow", 100, 250, TYPE_ETHAN),
-	createSound("cuts", 30, 250, TYPE_ETHAN),
-	createSound("beat", 30, 250, TYPE_ETHAN),
-	createSound("sodiepop", 1, 250, TYPE_ETHAN),
-}
 
 // Encode reads data from ffmpeg and encodes it using gopus
 func (s *Sound) Encode() {
@@ -180,21 +89,10 @@ func (s *Sound) Encode() {
 }
 
 // Load attempts to load and encode a sound file from disk
-func (s *Sound) Load() error {
+func (s *Sound) Load(path string) error {
 	s.encodeChan = make(chan []int16, 10)
 	defer close(s.encodeChan)
 	go s.Encode()
-
-	var path string
-	if s.Type == TYPE_AIRHORN {
-		path = fmt.Sprintf("audio/airhorn_%v.wav", s.Name)
-	} else if s.Type == TYPE_KHALED {
-		path = fmt.Sprintf("audio/another_%v.wav", s.Name)
-	} else if s.Type == TYPE_CENA {
-		path = fmt.Sprintf("audio/jc_%v.wav", s.Name)
-	} else if s.Type == TYPE_ETHAN {
-		path = fmt.Sprintf("audio/ethan_%v.wav", s.Name)
-	}
 
 	ffmpeg := exec.Command("ffmpeg", "-i", path, "-f", "s16le", "-ar", "48000", "-ac", "2", "pipe:1")
 	stdout, err := ffmpeg.StdoutPipe()
@@ -234,10 +132,24 @@ func (s *Sound) Play(vc *discordgo.VoiceConnection) {
 	vc.Speaking(true)
 	defer vc.Speaking(false)
 
+    // t := time.NewTicker(time.Duration(1) * time.Second)
+    // go s.control(t)
+
 	for _, buff := range s.buffer {
 		vc.OpusSend <- buff
+        if skip == true {
+            skip = false
+            break
+        }
 	}
 }
+
+// func (s *Sound) control(t *time.Ticker) {
+//     for {
+//         <- t.C
+//
+//     }
+// }
 
 // Attempts to find the current users voice channel inside a given guild
 func getCurrentVoiceChannel(user *discordgo.User, guild *discordgo.Guild) *discordgo.Channel {
@@ -265,57 +177,9 @@ func shardContains(guildid string) bool {
 	return true
 }
 
-// Returns a random sound
-func getRandomSound(stype int) *Sound {
-	var i int
-
-	if stype == TYPE_AIRHORN {
-		number := randomRange(0, AIRHORN_SOUND_RANGE)
-
-		for _, item := range AIRHORNS {
-			i += item.Weight
-
-			if number < i {
-				return item
-			}
-		}
-	} else if stype == TYPE_KHALED {
-		number := randomRange(0, KHALED_SOUND_RANGE)
-
-		for _, item := range KHALED {
-			i += item.Weight
-
-			if number < i {
-				return item
-			}
-		}
-	} else if stype == TYPE_CENA {
-		number := randomRange(0, CENA_SOUND_RANGE)
-
-		for _, item := range CENA {
-			i += item.Weight
-
-			if number < i {
-				return item
-			}
-		}
-	} else if stype == TYPE_ETHAN {
-		number := randomRange(0, ETHAN_SOUND_RANGE)
-
-		for _, item := range ETHAN {
-			i += item.Weight
-
-			if number < i {
-				return item
-			}
-		}
-	}
-
-	return nil
-}
 
 // Enqueues a play into the ratelimit/buffer guild queue
-func enqueuePlay(user *discordgo.User, guild *discordgo.Guild, sound *Sound, khaled bool, stype int) {
+func enqueuePlay(user *discordgo.User, guild *discordgo.Guild, sound *Sound) {
 	// Grab the users voice channel
 	channel := getCurrentVoiceChannel(user, guild)
 	if channel == nil {
@@ -326,19 +190,11 @@ func enqueuePlay(user *discordgo.User, guild *discordgo.Guild, sound *Sound, kha
 		return
 	}
 
-	var forced bool = true
-	if sound == nil {
-		forced = false
-		sound = getRandomSound(stype)
-	}
-
 	play := &Play{
 		GuildID:   guild.ID,
 		ChannelID: channel.ID,
 		UserID:    user.ID,
 		Sound:     sound,
-		Forced:    forced,
-		Khaled:    khaled,
 	}
 
 	// Check if we already have a connection to this guild
@@ -354,46 +210,8 @@ func enqueuePlay(user *discordgo.User, guild *discordgo.Guild, sound *Sound, kha
 	}
 }
 
-func trackSoundStats(play *Play) {
-	if rcli == nil {
-		return
-	}
-
-	_, err := rcli.Pipelined(func(pipe *redis.Pipeline) error {
-		var baseChar string
-
-		if play.Forced {
-			baseChar = "f"
-		} else {
-			baseChar = "a"
-		}
-
-		base := fmt.Sprintf("airhorn:%s", baseChar)
-		pipe.Incr("airhorn:total")
-		pipe.Incr(fmt.Sprintf("%s:total", base))
-		pipe.Incr(fmt.Sprintf("%s:sound:%s", base, play.Sound.Name))
-		pipe.Incr(fmt.Sprintf("%s:user:%s:sound:%s", base, play.UserID, play.Sound.Name))
-		pipe.Incr(fmt.Sprintf("%s:guild:%s:sound:%s", base, play.GuildID, play.Sound.Name))
-		pipe.Incr(fmt.Sprintf("%s:guild:%s:chan:%s:sound:%s", base, play.GuildID, play.ChannelID, play.Sound.Name))
-		pipe.SAdd(fmt.Sprintf("%s:users", base), play.UserID)
-		pipe.SAdd(fmt.Sprintf("%s:guilds", base), play.GuildID)
-		pipe.SAdd(fmt.Sprintf("%s:channels", base), play.ChannelID)
-		return nil
-	})
-
-	if err != nil {
-		log.WithFields(log.Fields{
-			"error": err,
-		}).Warning("Failed to track stats in redis")
-	}
-}
-
-func calculateAirhornsPerSecond(cid string) {
-	current, _ := strconv.Atoi(rcli.Get("airhorn:a:total").Val())
-	time.Sleep(time.Second * 10)
-	latest, _ := strconv.Atoi(rcli.Get("airhorn:a:total").Val())
-
-	discord.ChannelMessageSend(cid, fmt.Sprintf("Current APS: %v", (float64(latest-current))/10.0))
+func next(GuildID string) {
+    skip = true
 }
 
 // Play a sound
@@ -423,15 +241,6 @@ func playSound(play *Play, vc *discordgo.VoiceConnection) (err error) {
 	// Sleep for a specified amount of time before playing the sound
 	time.Sleep(time.Millisecond * 32)
 
-	// If we're appreciating this sound, lets play some DJ KHALLLLLEEEEDDDD
-	if play.Khaled {
-		dj := getRandomSound(TYPE_KHALED)
-		dj.Play(vc)
-	}
-
-	// Track stats for this play in redis
-	go trackSoundStats(play)
-
 	// Play the sound
 	play.Sound.Play(vc)
 
@@ -443,7 +252,7 @@ func playSound(play *Play, vc *discordgo.VoiceConnection) (err error) {
 	}
 
 	// If the queue is empty, delete it
-	time.Sleep(time.Millisecond * time.Duration(play.Sound.PartDelay))
+	time.Sleep(time.Millisecond * time.Duration(500))
 	delete(queues, play.GuildID)
 	vc.Disconnect()
 	return nil

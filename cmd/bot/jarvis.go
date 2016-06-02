@@ -13,8 +13,10 @@ import (
     "image/png"
     "bytes"
     "regexp"
+    "path/filepath"
 
     log "github.com/Sirupsen/logrus"
+    yt "github.com/kkdai/youtube"
 )
 var (
     DEFAULT_LOL_REGION string = "euw"
@@ -269,4 +271,54 @@ func classifyImage(input []string, s *discordgo.Session, m *discordgo.MessageCre
     if err != nil {log.Warning(err)}
 
     log.Info("Finished classification.")
+}
+
+
+func queueYoutube(input []string, s *discordgo.Session, m *discordgo.MessageCreate, g *discordgo.Guild) {
+    if (len(input) < 1) {
+        s.ChannelMessageSend(m.ChannelID, "Usage: !play <link>")
+        return
+    }
+    link := input[0]
+    rng := fmt.Sprintf("%d",rand.Intn(1000000))
+
+    //currentDir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
+    log.Println("Downloading ", link, " to dir=", rng)
+
+    os.Mkdir("." + string(filepath.Separator) + "temp" + string(filepath.Separator) + rng,0777)
+    y := yt.NewYoutube()
+    err := y.DecodeURL(link)
+    if err != nil {
+        message := fmt.Sprintf("Invalid link: %s", err)
+        s.ChannelMessageSend(m.ChannelID, message)
+        return
+    }
+    y.StartDownload(fmt.Sprintf("./temp/%s/",rng))
+    //filename := link
+    //filepath := fmt.Sprintf("temp/%s.%s", rng)
+
+    files, err := ioutil.ReadDir(fmt.Sprintf("./temp/%s/", rng))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+    sound := createSound(link)
+    log.Info(files[0].Name())
+    sound.Load(fmt.Sprintf("./temp/%s/%s", rng, files[0].Name()))
+    log.Info("Enqueuing video...")
+    go enqueuePlay(m.Author, g, sound)
+    log.Info("Done.")
+
+    log.Info("Trying to remove", fmt.Sprintf("./temp/%s", rng))
+    err = os.Remove(fmt.Sprintf("./temp/%s/%s", rng, files[0].Name()))
+    err = os.Remove(fmt.Sprintf("./temp/%s", rng))
+    if err != nil {
+        log.Error("Unsuccessfull deletion of file.")
+        log.Error(err)
+    }
+}
+
+func nextYoutube(s *discordgo.Session, m *discordgo.MessageCreate, g *discordgo.Guild) {
+    s.ChannelMessageSend(m.ChannelID, "Skipping song.")
+    next(g.ID)
 }

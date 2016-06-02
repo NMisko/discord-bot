@@ -13,7 +13,7 @@ import (
     "image/png"
     "bytes"
     "regexp"
-    "path/filepath"
+    //"path/filepath"
 
     log "github.com/Sirupsen/logrus"
     yt "github.com/kkdai/youtube"
@@ -280,12 +280,8 @@ func queueYoutube(input []string, s *discordgo.Session, m *discordgo.MessageCrea
         return
     }
     link := input[0]
-    rng := fmt.Sprintf("%d",rand.Intn(1000000))
+    log.Info("Downloading ", link)
 
-    //currentDir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
-    log.Println("Downloading ", link, " to dir=", rng)
-
-    os.Mkdir("." + string(filepath.Separator) + "temp" + string(filepath.Separator) + rng,0777)
     y := yt.NewYoutube()
     err := y.DecodeURL(link)
     if err != nil {
@@ -293,28 +289,22 @@ func queueYoutube(input []string, s *discordgo.Session, m *discordgo.MessageCrea
         s.ChannelMessageSend(m.ChannelID, message)
         return
     }
-    y.StartDownload(fmt.Sprintf("./temp/%s/",rng))
-    //filename := link
-    //filepath := fmt.Sprintf("temp/%s.%s", rng)
-
-    files, err := ioutil.ReadDir(fmt.Sprintf("./temp/%s/", rng))
-	if err != nil {
-		log.Fatal(err)
-	}
+    y.StartDownload("./temp/")
+    title := y.StreamList[0]["title"]
+    file := fmt.Sprintf("./temp/%s.mp4", title)
 
     sound := createSound(link)
-    log.Info(files[0].Name())
-    sound.Load(fmt.Sprintf("./temp/%s/%s", rng, files[0].Name()))
+    sound.Load(file)
+
     log.Info("Enqueuing video...")
     go enqueuePlay(m.Author, g, sound)
     log.Info("Done.")
 
-    log.Info("Trying to remove", fmt.Sprintf("./temp/%s", rng))
-    err = os.Remove(fmt.Sprintf("./temp/%s/%s", rng, files[0].Name()))
-    err = os.Remove(fmt.Sprintf("./temp/%s", rng))
+    log.Info("Trying to remove ", file)
+    err = os.Remove(file)
     if err != nil {
-        log.Error("Unsuccessfull deletion of file.")
-        log.Error(err)
+        log.Warning("Unsuccessfull deletion of file.")
+        log.Warning(err)
     }
 }
 

@@ -24,7 +24,7 @@ var (
 	}
 
 	RESTRICTED = []string {
-		"121687102114103298", //Salem
+
 	}
 
 	BANNED = []string {

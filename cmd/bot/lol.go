@@ -13,15 +13,19 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
+/* Struct containing information about a LoL player.
+*/
 type Summoner struct {
     rank string
     rankImage string
     wins string
     losses string
     winratio string
-	lp string
+    lp string
 }
 
+/* Returns a 'Summoner' struct containing the information gotten from the RiotGames API based on the given summonername and region.
+*/
 func GetSummonerElo(summonername string, region string) Summoner {
     var rank, rankImage, wins, losses, winratio, lp string = "","","","","",""
     var root *html.Node
@@ -72,12 +76,14 @@ func GetSummonerElo(summonername string, region string) Summoner {
     return summoner
 }
 
+/* Struct used to unmarshal the data gotten from the RiotGames API
+*/
 type RiotSummoner struct {
     Name string `json:"name"`
     ID int `json:"id"`
 }
 
-
+/* Gets information about a summoner from the RiotGames API.
 func GetSummoner(summoner string, region string, key string) RiotSummoner {
     jsonMessage := riotApiCall(fmt.Sprintf("/api/lol/%s/v1.4/summoner/by-name/%s", region, summoner), region, key)
     var w map[string]RiotSummoner
@@ -87,6 +93,9 @@ func GetSummoner(summoner string, region string, key string) RiotSummoner {
     return w[lowercase(summoner)]
 }
 
+/* 	Contains data about a league tier.
+	Used to unmarshall the data gotten from the RiotGames API
+/*
 type RiotLeague struct {
     Tier string `json:"tier"`
     Name string `json:"name"`
@@ -98,6 +107,8 @@ type RiotLeague struct {
     } `json:"entries"`
 }
 
+/* Returns the league of the given summoner. Use 'GetSummoner' to get the summonerid of a summoner (it's not the username).
+*/
 func GetLeague(summonerid string, region string, key string) RiotLeague {
 	jsonMessage := riotApiCall(fmt.Sprintf("/api/lol/%s/v2.5/league/by-summoner/%s/entry", region, summonerid), region, key)
 
@@ -112,6 +123,8 @@ func GetLeague(summonerid string, region string, key string) RiotLeague {
     return w[summonerid][0]
 }
 
+/*	Generic method for a call to the RiotGames API.
+*/
 func riotApiCall(call string, region string, key string) []byte {
 	url := fmt.Sprintf("https://%s.api.pvp.net%s?api_key=%s", region, call, key)
 	log.Info(url)

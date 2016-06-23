@@ -1,3 +1,7 @@
+
+/*	This file contains all high level commands of the bot. 
+
+
 package main
 import (
     "fmt"
@@ -13,7 +17,6 @@ import (
     "image/png"
     "bytes"
     "regexp"
-    //"path/filepath"
 
     log "github.com/Sirupsen/logrus"
     yt "github.com/kkdai/youtube"
@@ -54,46 +57,9 @@ var (
     PATH_TO_CLASSIFY_EXEC = "tensorflow/imagenet/classify_image.py"
 )
 
-// name [region]
-func eloDEPRECATED(input []string, s *discordgo.Session, m *discordgo.MessageCreate) {
-	region := DEFAULT_LOL_REGION
-
-    p := NewParser(input)
-    if(!p.nextToken()) { return }
-    p.nextToken()
-    name := strings.ToLower(p.Token)
-    p.nextToken()
-    switch (strings.ToLower(p.Token)) {
-        case "na": region = "na"
-        case "br": region = "br"
-        case "kr": region = ""
-        case "eune": region = "eune"
-        case "jp": region = "jp"
-        case "tr": region = "tr"
-        case "oce": region = "oce"
-        case "las": region = "las"
-        case "ru" : region = "ru"
-    }
-
-    summoner := GetSummonerElo(name, region)
-    if(summoner.rank == "") {
-        s.ChannelMessageSend(m.ChannelID, "Could not find player.")
-        return
-    }
-    s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("http:%s", summoner.rankImage))
-    if(summoner.rank != "Unranked") {
-        s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("**%s** %sLP", summoner.rank, summoner.lp))
-        s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Wins: **%s** Losses: **%s** Winrate: **%s**", summoner.wins, summoner.losses, strings.Join([]string{summoner.winratio, "%"}, "")))
-    } else {
-        s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("**%s**", summoner.rank))
-    }
-    switch name {
-        case "uznick": s.ChannelMessageSend(m.ChannelID, "But deserves Challenjour, Kappa.")
-        case "mehdid": s.ChannelMessageSend(m.ChannelID, "Also, best Amumu EUW.")
-        case "flakelol": s.ChannelMessageSend(m.ChannelID, "Also, best Shen EUW.")
-    }
-}
-
+/* 	Sends messages with information about the given players LoL rank.
+	Takes input of form: <Username> <Region>
+*/
 func elo(input []string, s *discordgo.Session, m *discordgo.MessageCreate, riotkey string) {
 	region := DEFAULT_LOL_REGION
 
@@ -119,7 +85,6 @@ func elo(input []string, s *discordgo.Session, m *discordgo.MessageCreate, riotk
         return
     }
     league := GetLeague(strconv.Itoa(summoner.ID), region, riotkey)
-    //s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("http:%s", summoner.rankImage))
     if(league.Tier != "Unranked") {
         entry := league.Entry[0]
         s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("**%s %s** %sLP", capitalize(strings.ToLower(league.Tier)), entry.Division, strconv.Itoa(entry.LP)))
@@ -135,7 +100,11 @@ func elo(input []string, s *discordgo.Session, m *discordgo.MessageCreate, riotk
 }
 
 
-// city [time|country] [country]
+/* 	Sends messages with information about the given cities weather
+	Takes input of form <city> <time>|<country> <country>
+	Time can be either "today" or "tomorrow" 
+	Country is its code (e.g. "de" for germany)
+*/
 func weather(input []string, s *discordgo.Session, m *discordgo.MessageCreate) {
     setTime := false
     country := "de"
@@ -174,23 +143,31 @@ func weather(input []string, s *discordgo.Session, m *discordgo.MessageCreate) {
     }
 }
 
+/* 	Answers the question 8-Ball Style randomly.
+*/
 func jarvis(input []string, s *discordgo.Session, m *discordgo.MessageCreate) {
 	if (string(input[len(input)-1][len(input[len(input)-1])-1]) == "?") {
 	s.ChannelMessageSend(m.ChannelID, JARVIS_ANSWERS[rand.Intn(len(JARVIS_ANSWERS))])
 	}
 }
 
+/*	Uploads a random coin face.
+*/
 func coin(s *discordgo.Session, m *discordgo.MessageCreate) {
 	file, err := os.Open(COIN_FACES_PATHS[rand.Intn(len(COIN_FACES_PATHS))])
 	if err != nil { log.Warning(err) }
 	s.ChannelFileSend(m.ChannelID, "Coin.png", file)
 }
 
+/*	Sends a message with the result of a six-sided dice roll.
+*/
 func dice(s *discordgo.Session, m *discordgo.MessageCreate) {
 	answers := []string { "1", "2", "3", "4", "5", "6",}
 	s.ChannelMessageSend(m.ChannelID, answers[rand.Intn(len(answers))])
 }
 
+/*	Downloads the linked picture and categorizes it with an ANN. Sends messages containing the different possible results and their probabilities.
+*/
 func classifyImage(input []string, s *discordgo.Session, m *discordgo.MessageCreate) {
     local := fmt.Sprintf("temp/%s.jpg", m.ID)
     localConverted := fmt.Sprintf("temp/%sC.jpg", m.ID)
@@ -273,7 +250,8 @@ func classifyImage(input []string, s *discordgo.Session, m *discordgo.MessageCre
     log.Info("Finished classification.")
 }
 
-
+/* Queues up a Youtube video, whose sound is played in the voice channel the command caller is in. Downloads the entire Youtube video locally, which might take a while, based on the internet connection.
+*/
 func queueYoutube(input []string, s *discordgo.Session, m *discordgo.MessageCreate, g *discordgo.Guild) {
     if (len(input) < 1) {
         s.ChannelMessageSend(m.ChannelID, "Usage: !play <link>")
@@ -308,6 +286,8 @@ func queueYoutube(input []string, s *discordgo.Session, m *discordgo.MessageCrea
     }
 }
 
+/* Skips the current song.
+*/
 func nextYoutube(s *discordgo.Session, m *discordgo.MessageCreate, g *discordgo.Guild) {
     s.ChannelMessageSend(m.ChannelID, "Skipping song.")
     next(g.ID)

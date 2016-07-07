@@ -136,7 +136,6 @@ func bold(s string) string {
 	} else {return "[no data]"}
 }
 
-
 type Parser struct {
     tokenIndex int
     tokens []string
@@ -155,4 +154,69 @@ func (s *Parser) nextToken() bool {
 
 func NewParser(list []string) *Parser {
     return &Parser{-1, list, ""}
+}
+
+
+type StringQueue struct {
+    stack []string
+    head int //index of the first element
+    tail int //index of the last element
+    size int //total size
+}
+
+func newStringQueue(size int) *StringQueue {
+    q := StringQueue{}
+    q.stack = make([]string, size)
+    q.head = 0
+    q.tail = 0
+    q.size = size
+    return &q
+}
+
+//need to implement what happens if queue full
+func (q *StringQueue) enqueue(s string) {
+
+    //Move queue back to front
+    if (q.tail == q.size - 1) {
+        var newstack = make([]string, q.size)
+        j := 0
+        for i := q.head; i <= q.tail; i++ {
+            newstack[j] = q.stack[i]
+            j++
+        }
+        q.tail = q.tail - q.head
+        q.head = 0
+    }
+
+    q.stack[q.tail+1] = s
+    q.tail++
+}
+
+func (q *StringQueue) dequeue() string {
+    out := q.stack[q.head]
+    q.stack[q.head] = "";
+    q.head++;
+
+    return out;
+}
+
+//removes first occurrence of title
+func (q *StringQueue) remove(s string) {
+    for i := q.head; i <= q.tail; i++ {
+        if(q.stack[i] == s) {
+            for j := i; j <= q.tail; j++ {
+                //if(q.stack[j+1] != nil) {
+                    q.stack[j] = q.stack[j+1]
+                //}
+            }
+        }
+    }
+}
+
+func (q *StringQueue) length() int {
+    return q.tail - q.head + 1
+}
+
+func (q *StringQueue) toArray() []string {
+    return q.stack[q.head:q.tail]
 }

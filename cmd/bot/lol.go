@@ -24,7 +24,8 @@ type Summoner struct {
     lp string
 }
 
-/* Returns a 'Summoner' struct containing the information gotten from the RiotGames API based on the given summonername and region.
+/*
+Scrapes op.gg for summoner information
 */
 func GetSummonerElo(summonername string, region string) Summoner {
     var rank, rankImage, wins, losses, winratio, lp string = "","","","","",""
@@ -83,7 +84,7 @@ type RiotSummoner struct {
     ID int `json:"id"`
 }
 
-/* Gets information about a summoner from the RiotGames API.
+/* Gets information about a summoner from the RiotGames API. */
 func GetSummoner(summoner string, region string, key string) RiotSummoner {
     jsonMessage := riotApiCall(fmt.Sprintf("/api/lol/%s/v1.4/summoner/by-name/%s", region, summoner), region, key)
     var w map[string]RiotSummoner
@@ -95,7 +96,7 @@ func GetSummoner(summoner string, region string, key string) RiotSummoner {
 
 /* 	Contains data about a league tier.
 	Used to unmarshall the data gotten from the RiotGames API
-/*
+*/
 type RiotLeague struct {
     Tier string `json:"tier"`
     Name string `json:"name"`

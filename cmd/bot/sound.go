@@ -15,6 +15,7 @@ import (
 var (
     // Map of Guild id's to *Play channels, used for queuing and rate-limiting guilds
     queues map[string]chan *Play = make(map[string]chan *Play)
+    //map[string] string[]
 
     // Owner
     OWNER string
@@ -35,6 +36,7 @@ type Play struct {
 	ChannelID string
 	UserID    string
 	Sound     *Sound
+    Title     string
 }
 
 // Sound represents a sound clip
@@ -179,7 +181,7 @@ func shardContains(guildid string) bool {
 
 
 // Enqueues a play into the ratelimit/buffer guild queue
-func enqueuePlay(user *discordgo.User, guild *discordgo.Guild, sound *Sound) {
+func enqueuePlay(user *discordgo.User, guild *discordgo.Guild, sound *Sound, title string) {
 	// Grab the users voice channel
 	channel := getCurrentVoiceChannel(user, guild)
 	if channel == nil {
@@ -195,6 +197,7 @@ func enqueuePlay(user *discordgo.User, guild *discordgo.Guild, sound *Sound) {
 		ChannelID: channel.ID,
 		UserID:    user.ID,
 		Sound:     sound,
+        Title:     title,
 	}
 
 	// Check if we already have a connection to this guild
@@ -254,6 +257,9 @@ func playSound(play *Play, vc *discordgo.VoiceConnection) (err error) {
 	// If the queue is empty, delete it
 	time.Sleep(time.Millisecond * time.Duration(500))
 	delete(queues, play.GuildID)
+
+    youtubeQueues[play.GuildID].remove(play.Title)
+
 	vc.Disconnect()
 	return nil
 }

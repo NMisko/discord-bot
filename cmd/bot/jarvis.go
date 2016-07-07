@@ -1,5 +1,5 @@
 
-/*	This file contains all high level commands of the bot. 
+/*	This file contains all high level commands of the bot. */
 
 
 package main
@@ -55,6 +55,9 @@ var (
         "Very doubtful.",
     }
     PATH_TO_CLASSIFY_EXEC = "tensorflow/imagenet/classify_image.py"
+
+    youtubeQueues map[string] *StringQueue
+    youtubeDownloading map[string] *StringQueue
 )
 
 /* 	Sends messages with information about the given players LoL rank.
@@ -102,7 +105,7 @@ func elo(input []string, s *discordgo.Session, m *discordgo.MessageCreate, riotk
 
 /* 	Sends messages with information about the given cities weather
 	Takes input of form <city> <time>|<country> <country>
-	Time can be either "today" or "tomorrow" 
+	Time can be either "today" or "tomorrow"
 	Country is its code (e.g. "de" for germany)
 */
 func weather(input []string, s *discordgo.Session, m *discordgo.MessageCreate) {
@@ -267,15 +270,33 @@ func queueYoutube(input []string, s *discordgo.Session, m *discordgo.MessageCrea
         s.ChannelMessageSend(m.ChannelID, message)
         return
     }
-    y.StartDownload("./temp/")
     title := y.StreamList[0]["title"]
+
+    if _, ok := youtubeDownloading[g.ID]; ok {
+        youtubeDownloading[g.ID].enqueue(title)
+    } else {
+        youtubeDownloading[g.ID] = newStringQueue(20)
+    }
+
+    y.StartDownload("./temp/")
+
+    youtubeDownloading[g.ID].remove(title)
+
+    if _, ok := youtubeQueues[g.ID]; ok {
+        youtubeQueues[g.ID].enqueue(title)
+    } else {
+        youtubeQueues[g.ID] = newStringQueue(20)
+    }
+
+
+
     file := fmt.Sprintf("./temp/%s.mp4", title)
 
     sound := createSound(link)
     sound.Load(file)
 
     log.Info("Enqueuing video...")
-    go enqueuePlay(m.Author, g, sound)
+    go enqueuePlay(m.Author, g, sound, title)
     log.Info("Done.")
 
     log.Info("Trying to remove ", file)
@@ -291,4 +312,22 @@ func queueYoutube(input []string, s *discordgo.Session, m *discordgo.MessageCrea
 func nextYoutube(s *discordgo.Session, m *discordgo.MessageCreate, g *discordgo.Guild) {
     s.ChannelMessageSend(m.ChannelID, "Skipping song.")
     next(g.ID)
+}
+
+func printQueue(s *discordgo.Session, m *discordgo.MessageCreate, g *discordgo.Guild) {
+    message := ""
+
+    yq := youtubeQueues[g.ID]
+    ydq := youtubeDownloading[g.ID]
+
+    for i, y := range yq.toArray() {
+        message = message + strconv.Itoa(i) + ". " + y + " \n"
+    }
+    message = message + "Downloading: "
+
+    for _, y := range ydq.toArray() {
+        message = message + y + " \n"
+    }
+
+    s.ChannelMessageSend(m.ChannelID, message)
 }

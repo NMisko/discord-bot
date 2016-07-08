@@ -350,6 +350,7 @@ func currentsong(s *discordgo.Session, m *discordgo.MessageCreate, g *discordgo.
     if queue, ok := youtubeQueues[g.ID]; ok {
         if(queue.length() > 0) {
             s.ChannelMessageSend(m.ChannelID, "Current song: " + queue.peek())
+            return
         }
     }
     s.ChannelMessageSend(m.ChannelID, "No song playing");

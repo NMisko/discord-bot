@@ -288,10 +288,6 @@ func classifyImage(input []string, s *discordgo.Session, m *discordgo.MessageCre
 /* Queues up a Youtube video, whose sound is played in the voice channel the command caller is in. Downloads the entire Youtube video locally, which might take a while, based on the internet connection.
 */
 func queueYoutube(input []string, s *discordgo.Session, m *discordgo.MessageCreate, g *discordgo.Guild) {
-    log.Info("Youtube Queue: ")
-    log.Info(youtubeQueues[g.ID])
-    log.Info("Download Queue: ")
-    log.Info(youtubeDownloading[g.ID])
     if (len(input) < 1) {
         s.ChannelMessageSend(m.ChannelID, "Usage: !play <link>")
         return
@@ -312,6 +308,7 @@ func queueYoutube(input []string, s *discordgo.Session, m *discordgo.MessageCrea
         youtubeDownloading[g.ID].enqueue(title)
     } else {
         youtubeDownloading[g.ID] = newStringQueue(20)
+        youtubeDownloading[g.ID].enqueue(title)
     }
 
     y.StartDownload("./temp/")
@@ -322,6 +319,7 @@ func queueYoutube(input []string, s *discordgo.Session, m *discordgo.MessageCrea
         youtubeQueues[g.ID].enqueue(title)
     } else {
         youtubeQueues[g.ID] = newStringQueue(20)
+        youtubeQueues[g.ID].enqueue(title)
     }
 
     file := fmt.Sprintf("./temp/%s.mp4", title)
@@ -349,18 +347,12 @@ func nextYoutube(s *discordgo.Session, m *discordgo.MessageCreate, g *discordgo.
 }
 
 func currentsong(s *discordgo.Session, m *discordgo.MessageCreate, g *discordgo.Guild) {
-    log.Info("Here.")
-    log.Info("songs[g.ID]: ")
-    log.Info(songs[g.ID])
-
-    if title, ok := songs[g.ID]; ok {
-        if (title == "") {
-            s.ChannelMessageSend(m.ChannelID, "No song playing");
-        } else {
-            s.ChannelMessageSend(m.ChannelID, "Current song: " + title)
+    if queue, ok := youtubeQueues[g.ID]; ok {
+        if(queue.length() > 0) {
+            s.ChannelMessageSend(m.ChannelID, "Current song: " + queue.peek())
         }
     }
-    s.ChannelMessageSend(m.ChannelID, "Kappa")
+    s.ChannelMessageSend(m.ChannelID, "No song playing");
 }
 
 func printQueue(s *discordgo.Session, m *discordgo.MessageCreate, g *discordgo.Guild) {
@@ -379,7 +371,6 @@ func printQueue(s *discordgo.Session, m *discordgo.MessageCreate, g *discordgo.G
         }
     }
     if(okd) {
-
         i := 0
         for _, y := range ydq.toArray() {
             if(y != "") {
@@ -391,7 +382,6 @@ func printQueue(s *discordgo.Session, m *discordgo.MessageCreate, g *discordgo.G
             }
         }
     }
-
     s.ChannelMessageSend(m.ChannelID, message)
 }
 

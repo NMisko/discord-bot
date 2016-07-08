@@ -190,6 +190,10 @@ func (q *StringQueue) enqueue(s string) {
     q.tail++
 }
 
+func (q *StringQueue) peek() string {
+    return q.stack[q.head]
+}
+
 func (q *StringQueue) dequeue() string {
     out := q.stack[q.head]
     q.stack[q.head] = "";

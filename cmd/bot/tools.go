@@ -175,7 +175,7 @@ func newStringQueue(size int) *StringQueue {
 //need to implement what happens if queue full
 func (q *StringQueue) enqueue(s string) {
     //Move queue back to front
-    if (q.tail == q.size - 1) {
+    if (q.tail == q.size - 2) {
         var newstack = make([]string, q.size)
         j := 0
         for i := q.head; i <= q.tail; i++ {
@@ -184,6 +184,7 @@ func (q *StringQueue) enqueue(s string) {
         }
         q.tail = q.tail - q.head
         q.head = 0
+        q.stack = newstack
     }
 
     q.stack[q.tail+1] = s

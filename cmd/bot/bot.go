@@ -117,6 +117,12 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		case "!update": update(adminMode, s, m)
 		case "!remindme": remindme(parts[1:], s, m)
 		case "!rm": remindme(parts[1:], s, m)
+		case "!help":	help(s, m)
+//		case "!restrict": restrict(parts[1:], s, m)
+		case "!kappa": kappa(s,m)
+		case "!erwinross": erwinross(s,m)
+		case "!queue": printQueue(s, m, guild)
+		case "!song": currentsong(s,m,guild)
 	}
 
 	//My ears

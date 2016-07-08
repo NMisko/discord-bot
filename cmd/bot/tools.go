@@ -156,7 +156,6 @@ func NewParser(list []string) *Parser {
     return &Parser{-1, list, ""}
 }
 
-
 type StringQueue struct {
     stack []string
     head int //index of the first element
@@ -168,14 +167,15 @@ func newStringQueue(size int) *StringQueue {
     q := StringQueue{}
     q.stack = make([]string, size)
     q.head = 0
-    q.tail = 0
+    q.tail = -1
     q.size = size
     return &q
 }
 
 //need to implement what happens if queue full
 func (q *StringQueue) enqueue(s string) {
-
+    log.Info("Enqueuing " + s)
+    q.logInfo()
     //Move queue back to front
     if (q.tail == q.size - 1) {
         var newstack = make([]string, q.size)
@@ -192,7 +192,14 @@ func (q *StringQueue) enqueue(s string) {
     q.tail++
 }
 
+func(q *StringQueue) logInfo() {
+    log.Info("Head: " + strconv.Itoa(q.head))
+    log.Info("Tail: " + strconv.Itoa(q.tail))
+}
+
 func (q *StringQueue) dequeue() string {
+    log.Info("Dequeing ")
+    q.logInfo()
     out := q.stack[q.head]
     q.stack[q.head] = "";
     q.head++;
@@ -202,6 +209,8 @@ func (q *StringQueue) dequeue() string {
 
 //removes first occurrence of title
 func (q *StringQueue) remove(s string) {
+    log.Info("Removing " + s)
+    q.logInfo()
     for i := q.head; i <= q.tail; i++ {
         if(q.stack[i] == s) {
             for j := i; j <= q.tail; j++ {
@@ -209,6 +218,7 @@ func (q *StringQueue) remove(s string) {
                     q.stack[j] = q.stack[j+1]
                 //}
             }
+            q.tail = q.tail - 1
         }
     }
 }
@@ -218,5 +228,7 @@ func (q *StringQueue) length() int {
 }
 
 func (q *StringQueue) toArray() []string {
-    return q.stack[q.head:q.tail]
+    log.Info("Printing Queue")
+    q.logInfo()
+    return q.stack[q.head:(q.tail+1)]
 }

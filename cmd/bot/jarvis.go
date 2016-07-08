@@ -21,6 +21,12 @@ import (
     log "github.com/Sirupsen/logrus"
     yt "github.com/kkdai/youtube"
 )
+
+type MessageAck struct {
+    MessageID string `json:"message_id"`
+    ChannelID string `json:"channel_id"`
+}
+
 var (
     DEFAULT_LOL_REGION string = "euw"
     COIN_FACES_PATHS = []string{
@@ -56,8 +62,8 @@ var (
     }
     PATH_TO_CLASSIFY_EXEC = "tensorflow/imagenet/classify_image.py"
 
-    youtubeQueues map[string] *StringQueue
-    youtubeDownloading map[string] *StringQueue
+    youtubeQueues map[string] *StringQueue = make(map[string] *StringQueue)
+    youtubeDownloading map[string] *StringQueue = make(map[string] *StringQueue)
 )
 
 /* 	Sends messages with information about the given players LoL rank.
@@ -169,6 +175,32 @@ func dice(s *discordgo.Session, m *discordgo.MessageCreate) {
 	s.ChannelMessageSend(m.ChannelID, answers[rand.Intn(len(answers))])
 }
 
+func help(s *discordgo.Session, m *discordgo.MessageCreate) {
+//  data := []string { "Commands for J.A.R.V.I.S.:", "''!help'' - to list all commands", "''!coin'' - to flip a coin", "''!dice'' - to roll a dice",
+//                    "''!elo'' <summonername> - to show the current LoL rank of the Summoner",
+//                    "''!remindme'' <seconds> <message> or ''!rm'' <seconds> <message> - to remind you for something",
+//                    "Emotes:", "''!kappa''", "''!erwinross''"}
+//  for i := range data {
+//	   	s.ChannelMessageSend(m.ChannelID,data[i] + "\n")
+//}
+data := "Commands for J.A.R.V.I.S.: \n ''!help'' - to list all commands \n ''!coin'' - to flip a coin, \n ''!dice'' - to roll a dice, \n ''!elo'' <summonername> - to show the current LoL rank of the Summoner \n ''!remindme'' <seconds> <message> or ''!rm'' <seconds> <message> - to remind you for something \n Emotes: \n ''!kappa'' \n ''!erwinross''"
+        s.ChannelMessageSend(m.ChannelID,data)
+}
+
+func kappa(s *discordgo.Session, m *discordgo.MessageCreate) {
+	file, err := os.Open("images/Kappa.png")
+	if err != nil { log.Warning(err) }
+	s.ChannelFileSend(m.ChannelID, "Kappa.png", file)
+  s.ChannelMessageDelete(m.ChannelID,m.Message.ID)
+}
+
+func erwinross(s *discordgo.Session, m *discordgo.MessageCreate) {
+	file, err := os.Open("images/Erwinross.png")
+	if err != nil { log.Warning(err) }
+	s.ChannelFileSend(m.ChannelID, "Erwinross.png", file)
+  s.ChannelMessageDelete(m.ChannelID,m.Message.ID)
+}
+
 /*	Downloads the linked picture and categorizes it with an ANN. Sends messages containing the different possible results and their probabilities.
 */
 func classifyImage(input []string, s *discordgo.Session, m *discordgo.MessageCreate) {
@@ -256,6 +288,10 @@ func classifyImage(input []string, s *discordgo.Session, m *discordgo.MessageCre
 /* Queues up a Youtube video, whose sound is played in the voice channel the command caller is in. Downloads the entire Youtube video locally, which might take a while, based on the internet connection.
 */
 func queueYoutube(input []string, s *discordgo.Session, m *discordgo.MessageCreate, g *discordgo.Guild) {
+    log.Info("Youtube Queue: ")
+    log.Info(youtubeQueues[g.ID])
+    log.Info("Download Queue: ")
+    log.Info(youtubeDownloading[g.ID])
     if (len(input) < 1) {
         s.ChannelMessageSend(m.ChannelID, "Usage: !play <link>")
         return
@@ -288,8 +324,6 @@ func queueYoutube(input []string, s *discordgo.Session, m *discordgo.MessageCrea
         youtubeQueues[g.ID] = newStringQueue(20)
     }
 
-
-
     file := fmt.Sprintf("./temp/%s.mp4", title)
 
     sound := createSound(link)
@@ -314,20 +348,61 @@ func nextYoutube(s *discordgo.Session, m *discordgo.MessageCreate, g *discordgo.
     next(g.ID)
 }
 
+func currentsong(s *discordgo.Session, m *discordgo.MessageCreate, g *discordgo.Guild) {
+    log.Info("Here.")
+    log.Info("songs[g.ID]: ")
+    log.Info(songs[g.ID])
+
+    if title, ok := songs[g.ID]; ok {
+        if (title == "") {
+            s.ChannelMessageSend(m.ChannelID, "No song playing");
+        } else {
+            s.ChannelMessageSend(m.ChannelID, "Current song: " + title)
+        }
+    }
+    s.ChannelMessageSend(m.ChannelID, "Kappa")
+}
+
 func printQueue(s *discordgo.Session, m *discordgo.MessageCreate, g *discordgo.Guild) {
     message := ""
 
-    yq := youtubeQueues[g.ID]
-    ydq := youtubeDownloading[g.ID]
+    yq, okq := youtubeQueues[g.ID]
+    ydq, okd := youtubeDownloading[g.ID]
 
-    for i, y := range yq.toArray() {
-        message = message + strconv.Itoa(i) + ". " + y + " \n"
+    if(okq) {
+        i := 0
+        for _, y := range yq.toArray() {
+            if(y != "") {
+                i++
+                message = message + strconv.Itoa(i) + ". " + y + " \n"
+            }
+        }
     }
-    message = message + "Downloading: "
+    if(okd) {
 
-    for _, y := range ydq.toArray() {
-        message = message + y + " \n"
+        i := 0
+        for _, y := range ydq.toArray() {
+            if(y != "") {
+                if(i == 0) {
+                    message = message + "Downloading: "
+                }
+                i++
+                message = message + y + " \n"
+            }
+        }
     }
 
     s.ChannelMessageSend(m.ChannelID, message)
 }
+
+
+
+//func restrict(input []string, s *discordgo.Session, m *discordgo.MessageCreate)  {
+//  firststring := input[0]
+//  name := string
+//  for i := 3; i < len(firststring); i++ {
+//    name = nameRegex.FindString(firststring[i])
+//  }
+//    log.Info(RESTRICTED)
+//    RESTRICTED = append(RESTRICTED, name)
+//}

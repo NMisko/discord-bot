@@ -15,7 +15,7 @@ import (
 var (
     // Map of Guild id's to *Play channels, used for queuing and rate-limiting guilds
     queues map[string]chan *Play = make(map[string]chan *Play)
-    //map[string] string[]
+    songs map[string] string = make(map[string] string)
 
     // Owner
     OWNER string
@@ -246,6 +246,7 @@ func playSound(play *Play, vc *discordgo.VoiceConnection) (err error) {
 
 	// Play the sound
 	play.Sound.Play(vc)
+    youtubeQueues[play.GuildID].remove(play.Title)
 
 	// If there is another song in the queue, recurse and play that
 	if len(queues[play.GuildID]) > 0 {
@@ -257,8 +258,6 @@ func playSound(play *Play, vc *discordgo.VoiceConnection) (err error) {
 	// If the queue is empty, delete it
 	time.Sleep(time.Millisecond * time.Duration(500))
 	delete(queues, play.GuildID)
-
-    youtubeQueues[play.GuildID].remove(play.Title)
 
 	vc.Disconnect()
 	return nil

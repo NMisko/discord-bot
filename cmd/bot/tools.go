@@ -18,6 +18,15 @@ import (
     log "github.com/Sirupsen/logrus"
 )
 
+func stripChars(str, chr string) string {
+    return strings.Map(func(r rune) rune {
+        if strings.IndexRune(chr, r) < 0 {
+            return r
+        }
+        return -1
+    }, str)
+}
+
 func ReadWebsite(url string) (out *html.Node) {
     resp, err := http.Get(url)
 

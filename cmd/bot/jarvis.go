@@ -302,16 +302,19 @@ func queueYoutube(input []string, s *discordgo.Session, m *discordgo.MessageCrea
         s.ChannelMessageSend(m.ChannelID, message)
         return
     }
-    title := y.StreamList[0]["title"]
+    title := stripChars(y.StreamList[0]["title"], " ") //remove whitespace 
+    log.Info("Title: ", title)
 
     if _, ok := youtubeDownloading[g.ID]; ok {
+        log.Info("Enqueuing (not a new queue)")
         youtubeDownloading[g.ID].enqueue(title)
     } else {
+        log.Info("Enqueuing into a new queue")
         youtubeDownloading[g.ID] = newStringQueue(20)
         youtubeDownloading[g.ID].enqueue(title)
     }
 
-    y.StartDownload("./temp/")
+    y.StartDownload(fmt.Sprintf("./temp/%s.mp4", title))
 
     youtubeDownloading[g.ID].remove(title)
 

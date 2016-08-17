@@ -123,6 +123,9 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		case "!erwinross": erwinross(s,m)
 		case "!queue": printQueue(s, m, guild)
 		case "!song": currentsong(s,m,guild)
+		case "!startpoll": startPoll(parts[1:], s, m, guild)
+		case "!vote": vote(parts[1:], s, m, guild)
+		case "!endpoll": endPoll(s, m, guild)
 	}
 
 	//My ears

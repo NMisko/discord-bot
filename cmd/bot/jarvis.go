@@ -64,6 +64,8 @@ var (
 
     youtubeQueues map[string] *StringQueue = make(map[string] *StringQueue)
     youtubeDownloading map[string] *StringQueue = make(map[string] *StringQueue)
+
+    polls map[string] *Poll = make(map[string] *Poll)
 )
 
 /* 	Sends messages with information about the given players LoL rank.
@@ -302,7 +304,7 @@ func queueYoutube(input []string, s *discordgo.Session, m *discordgo.MessageCrea
         s.ChannelMessageSend(m.ChannelID, message)
         return
     }
-    title := stripChars(y.StreamList[0]["title"], " ") //remove whitespace 
+    title := stripChars(y.StreamList[0]["title"], " ") //remove whitespace
     log.Info("Title: ", title)
 
     if _, ok := youtubeDownloading[g.ID]; ok {
@@ -389,14 +391,46 @@ func printQueue(s *discordgo.Session, m *discordgo.MessageCreate, g *discordgo.G
     s.ChannelMessageSend(m.ChannelID, message)
 }
 
+func startPoll(input []string, s *discordgo.Session, m *discordgo.MessageCreate, g *discordgo.Guild) {
+    _, exists := polls[g.ID]
+    if(!exists) {
+        polls[g.ID] = &Poll{"",nil}
+    }
+    if(polls[g.ID].description != "") {
+        s.ChannelMessageSend(m.ChannelID, "There's already a poll! End it with !endpoll")
+        return
+    }
+    description := strings.Join(input, " ")
+    if (description == "") {
+        s.ChannelMessageSend(m.ChannelID, "Needs a description!")
+        return
+    }
+    polls[g.ID] = &Poll{description, make(map[string] int)}
+    s.ChannelMessageSend(m.ChannelID, "Added poll: \"" + description + "\" \nEnter !vote <yourvote> to vote!")
+}
 
+func vote(input []string, s *discordgo.Session, m *discordgo.MessageCreate, g *discordgo.Guild) {
+    _, exists := polls[g.ID]
+    if(!exists) {
+        polls[g.ID] = &Poll{"",nil}
+    }
+    if(polls[g.ID].description == "") {
+        s.ChannelMessageSend(m.ChannelID, "There's no poll! Start a poll with !startpoll")
+        return
+    }
+    polls[g.ID].vote(strings.Join(input, " "))
+}
 
-//func restrict(input []string, s *discordgo.Session, m *discordgo.MessageCreate)  {
-//  firststring := input[0]
-//  name := string
-//  for i := 3; i < len(firststring); i++ {
-//    name = nameRegex.FindString(firststring[i])
-//  }
-//    log.Info(RESTRICTED)
-//    RESTRICTED = append(RESTRICTED, name)
-//}
+func endPoll(s *discordgo.Session, m *discordgo.MessageCreate, g *discordgo.Guild) {
+    _, exists := polls[g.ID]
+    if(!exists) {
+        polls[g.ID] = &Poll{"",nil}
+    }
+    if(polls[g.ID].description == "") {
+        s.ChannelMessageSend(m.ChannelID, "There's no poll! Start a poll with !startpoll")
+        return
+    }
+    s.ChannelMessageSend(m.ChannelID, "Ending poll: \"" + polls[g.ID].description + "\"")
+    s.ChannelMessageSend(m.ChannelID, "Result: \n" + bold(polls[g.ID].getResult()))
+    polls[g.ID] = &Poll{"",nil}
+}

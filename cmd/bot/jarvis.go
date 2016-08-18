@@ -394,7 +394,8 @@ func printQueue(s *discordgo.Session, m *discordgo.MessageCreate, g *discordgo.G
 func startPoll(input []string, s *discordgo.Session, m *discordgo.MessageCreate, g *discordgo.Guild) {
     _, exists := polls[g.ID]
     if(!exists) {
-        polls[g.ID] = &Poll{"",nil}
+        var voters []string
+        polls[g.ID] = &Poll{"",nil, voters}
     }
     if(polls[g.ID].description != "") {
         s.ChannelMessageSend(m.ChannelID, "There's already a poll! End it with !endpoll")
@@ -405,26 +406,34 @@ func startPoll(input []string, s *discordgo.Session, m *discordgo.MessageCreate,
         s.ChannelMessageSend(m.ChannelID, "Needs a description!")
         return
     }
-    polls[g.ID] = &Poll{description, make(map[string] int)}
+    var voters []string
+    polls[g.ID] = &Poll{description, make(map[string] int), voters}
     s.ChannelMessageSend(m.ChannelID, "Added poll: \"" + description + "\" \nEnter !vote <yourvote> to vote!")
 }
 
 func vote(input []string, s *discordgo.Session, m *discordgo.MessageCreate, g *discordgo.Guild) {
     _, exists := polls[g.ID]
     if(!exists) {
-        polls[g.ID] = &Poll{"",nil}
+        var voters []string
+        polls[g.ID] = &Poll{"",nil,voters}
     }
     if(polls[g.ID].description == "") {
         s.ChannelMessageSend(m.ChannelID, "There's no poll! Start a poll with !startpoll")
         return
     }
+    if(contains(m.Author.ID, polls[g.ID].voters)) {
+        s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("<@%s> : You already voted once...",m.Author.ID))
+        return
+    }
     polls[g.ID].vote(strings.Join(input, " "))
+    polls[g.ID].voters = append(polls[g.ID].voters, m.Author.ID)
 }
 
 func endPoll(s *discordgo.Session, m *discordgo.MessageCreate, g *discordgo.Guild) {
     _, exists := polls[g.ID]
     if(!exists) {
-        polls[g.ID] = &Poll{"",nil}
+        var voters []string
+        polls[g.ID] = &Poll{"",nil, voters}
     }
     if(polls[g.ID].description == "") {
         s.ChannelMessageSend(m.ChannelID, "There's no poll! Start a poll with !startpoll")
@@ -432,5 +441,5 @@ func endPoll(s *discordgo.Session, m *discordgo.MessageCreate, g *discordgo.Guil
     }
     s.ChannelMessageSend(m.ChannelID, "Ending poll: \"" + polls[g.ID].description + "\"")
     s.ChannelMessageSend(m.ChannelID, "Result: \n" + bold(polls[g.ID].getResult()))
-    polls[g.ID] = &Poll{"",nil}
+    polls[g.ID] = &Poll{"",nil,nil}
 }

@@ -13,6 +13,7 @@ var (
 type Poll struct {
     description string
     votes map[string] int
+    voters []string
 }
 
 func (p *Poll) vote(vote string) {

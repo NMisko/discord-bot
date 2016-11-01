@@ -316,7 +316,12 @@ func queueYoutube(input []string, s *discordgo.Session, m *discordgo.MessageCrea
         youtubeDownloading[g.ID].enqueue(title)
     }
 
-    y.StartDownload(fmt.Sprintf("./temp/%s.mp4", title))
+    err = y.StartDownload(fmt.Sprintf("./temp/%s.mp4", title))
+    if err != nil {
+        message := fmt.Sprintf("Invalid link: %s", err)
+        s.ChannelMessageSend(m.ChannelID, message)
+        return
+    }
 
     youtubeDownloading[g.ID].remove(title)
 

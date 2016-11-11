@@ -48,8 +48,8 @@ func onGuildCreate(s *discordgo.Session, event *discordgo.GuildCreate) {
 
 	for _, channel := range event.Guild.Channels {
 		if channel.ID == event.Guild.ID {
-			s.ChannelMessageSend(channel.ID, "BEEP BOOP BOOTING")
-			s.ChannelMessageSend(channel.ID, "https://media.giphy.com/media/3o85g3yQa2iG2Rdq1O/giphy.gif")
+			// s.ChannelMessageSend(channel.ID, "BEEP BOOP BOOTING")
+			// s.ChannelMessageSend(channel.ID, "https://media.giphy.com/media/3o85g3yQa2iG2Rdq1O/giphy.gif")
 			return
 		}
 	}

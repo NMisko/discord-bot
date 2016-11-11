@@ -92,7 +92,6 @@ func (s *Sound) Encode() {
 
 // Load attempts to load and encode a sound file from disk
 func (s *Sound) Load(path string) error {
-    log.Info("Loading sound file: " + path)
 	s.encodeChan = make(chan []int16, 10)
 	defer close(s.encodeChan)
 	go s.Encode()
@@ -109,8 +108,6 @@ func (s *Sound) Load(path string) error {
 		fmt.Println("RunStart Error:", err)
 		return err
 	}
-    log.Info("ffmpeg output")
-    log.Info(ffmpeg)
 
 	for {
 		// read data from ffmpeg stdout
@@ -134,8 +131,6 @@ func (s *Sound) Load(path string) error {
 
 // Plays this sound over the specified VoiceConnection
 func (s *Sound) Play(vc *discordgo.VoiceConnection) {
-    log.Info("Trying to play sound.")
-    log.Info(vc)
 	vc.Speaking(true)
 	defer vc.Speaking(false)
 
@@ -229,9 +224,7 @@ func playSound(play *Play, vc *discordgo.VoiceConnection) (err error) {
 	}).Info("Playing sound")
 
 	if vc == nil {
-        log.Info("Trying to join channel.")
 		vc, err = discord.ChannelVoiceJoin(play.GuildID, play.ChannelID, false, false)
-        log.Info("Directly after joining channel.")
 		// vc.Receive = false
 		if err != nil {
 			log.WithFields(log.Fields{
@@ -241,22 +234,17 @@ func playSound(play *Play, vc *discordgo.VoiceConnection) (err error) {
 			return err
 		}
 	}
-    log.Info("Eventually change channel here.")
 	// If we need to change channels, do that now
 	if vc.ChannelID != play.ChannelID {
-        log.Info("Changing channel")
 		vc.ChangeChannel(play.ChannelID, false, false)
 		time.Sleep(time.Millisecond * 125)
 	}
-    log.Info("Sleeping 32 ms")
 	// Sleep for a specified amount of time before playing the sound
 	time.Sleep(time.Millisecond * 32)
 
-    log.Info("Calling play.Sound.Play(vc)")
 	// Play the sound
 	play.Sound.Play(vc)
 
-    log.Info("Removing title from queue.")
     youtubeQueues[play.GuildID].remove(play.Title)
 
 	// If there is another song in the queue, recurse and play that

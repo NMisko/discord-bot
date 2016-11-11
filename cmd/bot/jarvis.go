@@ -296,7 +296,6 @@ func classifyImage(input []string, s *discordgo.Session, m *discordgo.MessageCre
 func queueYoutube(input []string, s *discordgo.Session, m *discordgo.MessageCreate, g *discordgo.Guild) {
     var (
         titleOut []byte
-        idOut []byte
         filenameOut []byte
         err    error
     )
@@ -307,24 +306,18 @@ func queueYoutube(input []string, s *discordgo.Session, m *discordgo.MessageCrea
     link := input[0]
     log.Info("Downloading ", link)
 
-    if filenameOut, err = exec.Command("./youtubedownloader/youtube-dl", link, "--get-filename").Output(); err != nil {
+    if filenameOut, err = exec.Command("youtube-dl", link, "--get-filename").Output(); err != nil {
         log.Info("Error calling youtube-dl command (only to get id): ", err)
     }
     file := strings.Replace(string(filenameOut),"\n","",-1) //replace all new lines
     log.Info("--get-filename (with newlines removed): " + file)
 
     //THIS RETURNS A NEWLINE AT THE END
-    if titleOut, err = exec.Command("./youtubedownloader/youtube-dl", link, "--get-title").Output(); err != nil {
+    if titleOut, err = exec.Command("youtube-dl", link, "--get-title").Output(); err != nil {
         log.Info("Error calling youtube-dl command (only to get id): ", err)
     }
     title := strings.Replace(string(titleOut),"\n","",-1) //replace all new lines
     log.Info("--get-title (with newlines removed): " + title)
-
-    if idOut, err = exec.Command("./youtubedownloader/youtube-dl", link, "--get-id").Output(); err != nil {
-        log.Info("Error calling youtube-dl command (only to get id): ", err)
-    }
-    id := strings.Replace(string(idOut),"\n","",-1) //replace all new lines
-    log.Info("--get-id (with newlines removed): " + id)
 
     // y := yt.NewYoutube()
     // err := y.DecodeURL(link)
@@ -344,17 +337,11 @@ func queueYoutube(input []string, s *discordgo.Session, m *discordgo.MessageCrea
         youtubeDownloading[g.ID].enqueue(title)
     }
     log.Info("Starting download.")
-    if _, err = exec.Command("./youtubedownloader/youtube-dl", link).Output(); err != nil {
+    if err = exec.Command("youtube-dl", link, "--recode-video", "mp4").Run(); err != nil {
         log.Info("Error calling youtube-dl command: ", err)
     }
     log.Info("Finished download.")
 
-    newFilename := fmt.Sprintf("./%s.mp4", id)
-    os.Rename(file, newFilename)
-    file = newFilename
-
-
-    //y.StartDownload(fmt.Sprintf("./temp/%s.mp4", title))
     youtubeDownloading[g.ID].remove(title)
 
     if _, ok := youtubeQueues[g.ID]; ok {
@@ -366,19 +353,18 @@ func queueYoutube(input []string, s *discordgo.Session, m *discordgo.MessageCrea
 
     log.Info("File: " + file)
 
+    file = fmt.Sprintf("./%s", file)
+
     sound := createSound(link)
     sound.Load(file)
 
-    log.Info("Enqueuing video...")
     go enqueuePlay(m.Author, g, sound, title)
-    log.Info("Done.")
 
-    log.Info("Not trying to remove ", file)
-    //err = os.Remove(file)
-    // if err != nil {
-    //     log.Warning("Unsuccessfull deletion of file.")
-    //     log.Warning(err)
-    // }
+    err = os.Remove(file)
+    if err != nil {
+        log.Warning("Unsuccessfull deletion of file.")
+        log.Warning(err)
+    }
 }
 
 /* Skips the current song.

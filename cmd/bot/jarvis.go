@@ -19,7 +19,7 @@ import (
     "regexp"
 
     log "github.com/Sirupsen/logrus"
-    yt "github.com/kkdai/youtube"
+    //yt "github.com/kkdai/youtube"
 )
 
 type MessageAck struct {
@@ -157,8 +157,12 @@ func weather(input []string, s *discordgo.Session, m *discordgo.MessageCreate) {
 /* 	Answers the question 8-Ball Style randomly.
 */
 func jarvis(input []string, s *discordgo.Session, m *discordgo.MessageCreate) {
-	if (string(input[len(input)-1][len(input[len(input)-1])-1]) == "?") {
-	s.ChannelMessageSend(m.ChannelID, JARVIS_ANSWERS[rand.Intn(len(JARVIS_ANSWERS))])
+    if (string(input[len(input)-1][len(input[len(input)-1])-1]) == "?") {
+         if (m.Author.ID == "119818300308848651") { //Für Miguel
+             s.ChannelMessageSend(m.ChannelID, "No.")
+         } else {
+             s.ChannelMessageSend(m.ChannelID, JARVIS_ANSWERS[rand.Intn(len(JARVIS_ANSWERS))])
+         }
 	}
 }
 
@@ -193,7 +197,7 @@ func kappa(s *discordgo.Session, m *discordgo.MessageCreate) {
 	file, err := os.Open("images/Kappa.png")
 	if err != nil { log.Warning(err) }
 	s.ChannelFileSend(m.ChannelID, "Kappa.png", file)
-  s.ChannelMessageDelete(m.ChannelID,m.Message.ID)
+    s.ChannelMessageDelete(m.ChannelID,m.Message.ID)
 }
 
 func erwinross(s *discordgo.Session, m *discordgo.MessageCreate) {
@@ -290,6 +294,12 @@ func classifyImage(input []string, s *discordgo.Session, m *discordgo.MessageCre
 /* Queues up a Youtube video, whose sound is played in the voice channel the command caller is in. Downloads the entire Youtube video locally, which might take a while, based on the internet connection.
 */
 func queueYoutube(input []string, s *discordgo.Session, m *discordgo.MessageCreate, g *discordgo.Guild) {
+    var (
+        titleOut []byte
+        idOut []byte
+        filenameOut []byte
+        err    error
+    )
     if (len(input) < 1) {
         s.ChannelMessageSend(m.ChannelID, "Usage: !play <link>")
         return
@@ -297,15 +307,33 @@ func queueYoutube(input []string, s *discordgo.Session, m *discordgo.MessageCrea
     link := input[0]
     log.Info("Downloading ", link)
 
-    y := yt.NewYoutube()
-    err := y.DecodeURL(link)
-    if err != nil {
-        message := fmt.Sprintf("Invalid link: %s", err)
-        s.ChannelMessageSend(m.ChannelID, message)
-        return
+    if filenameOut, err = exec.Command("./youtubedownloader/youtube-dl", link, "--get-filename").Output(); err != nil {
+        log.Info("Error calling youtube-dl command (only to get id): ", err)
     }
-    title := stripChars(y.StreamList[0]["title"], " ") //remove whitespace
-    log.Info("Title: ", title)
+    file := strings.Replace(string(filenameOut),"\n","",-1) //replace all new lines
+    log.Info("--get-filename (with newlines removed): " + file)
+
+    //THIS RETURNS A NEWLINE AT THE END
+    if titleOut, err = exec.Command("./youtubedownloader/youtube-dl", link, "--get-title").Output(); err != nil {
+        log.Info("Error calling youtube-dl command (only to get id): ", err)
+    }
+    title := strings.Replace(string(titleOut),"\n","",-1) //replace all new lines
+    log.Info("--get-title (with newlines removed): " + title)
+
+    if idOut, err = exec.Command("./youtubedownloader/youtube-dl", link, "--get-id").Output(); err != nil {
+        log.Info("Error calling youtube-dl command (only to get id): ", err)
+    }
+    id := strings.Replace(string(idOut),"\n","",-1) //replace all new lines
+    log.Info("--get-id (with newlines removed): " + id)
+
+    // y := yt.NewYoutube()
+    // err := y.DecodeURL(link)
+    // if err != nil {
+    //     message := fmt.Sprintf("Invalid link: %s", err)
+    //     s.ChannelMessageSend(m.ChannelID, message)
+    //     return
+    // }
+    // title := stripChars(y.StreamList[0]["title"], " ") //remove whitespace
 
     if _, ok := youtubeDownloading[g.ID]; ok {
         log.Info("Enqueuing (not a new queue)")
@@ -315,9 +343,18 @@ func queueYoutube(input []string, s *discordgo.Session, m *discordgo.MessageCrea
         youtubeDownloading[g.ID] = newStringQueue(20)
         youtubeDownloading[g.ID].enqueue(title)
     }
+    log.Info("Starting download.")
+    if _, err = exec.Command("./youtubedownloader/youtube-dl", link).Output(); err != nil {
+        log.Info("Error calling youtube-dl command: ", err)
+    }
+    log.Info("Finished download.")
 
-    y.StartDownload(fmt.Sprintf("./temp/%s.mp4", title))
+    newFilename := fmt.Sprintf("./%s.mp4", id)
+    os.Rename(file, newFilename)
+    file = newFilename
 
+
+    //y.StartDownload(fmt.Sprintf("./temp/%s.mp4", title))
     youtubeDownloading[g.ID].remove(title)
 
     if _, ok := youtubeQueues[g.ID]; ok {
@@ -327,7 +364,7 @@ func queueYoutube(input []string, s *discordgo.Session, m *discordgo.MessageCrea
         youtubeQueues[g.ID].enqueue(title)
     }
 
-    file := fmt.Sprintf("./temp/%s.mp4", title)
+    log.Info("File: " + file)
 
     sound := createSound(link)
     sound.Load(file)
@@ -336,12 +373,12 @@ func queueYoutube(input []string, s *discordgo.Session, m *discordgo.MessageCrea
     go enqueuePlay(m.Author, g, sound, title)
     log.Info("Done.")
 
-    log.Info("Trying to remove ", file)
-    err = os.Remove(file)
-    if err != nil {
-        log.Warning("Unsuccessfull deletion of file.")
-        log.Warning(err)
-    }
+    log.Info("Not trying to remove ", file)
+    //err = os.Remove(file)
+    // if err != nil {
+    //     log.Warning("Unsuccessfull deletion of file.")
+    //     log.Warning(err)
+    // }
 }
 
 /* Skips the current song.

@@ -42,14 +42,10 @@ func onGuildCreate(s *discordgo.Session, event *discordgo.GuildCreate) {
 		return
 	}
 
-	if event.Guild.Unavailable != nil {
-		return
-	}
-
 	for _, channel := range event.Guild.Channels {
 		if channel.ID == event.Guild.ID {
-			s.ChannelMessageSend(channel.ID, "BEEP BOOP BOOTING")
-			s.ChannelMessageSend(channel.ID, "https://media.giphy.com/media/3o85g3yQa2iG2Rdq1O/giphy.gif")
+			//s.ChannelMessageSend(channel.ID, "BEEP BOOP BOOTING")
+			//s.ChannelMessageSend(channel.ID, "https://media.giphy.com/media/3o85g3yQa2iG2Rdq1O/giphy.gif")
 			return
 		}
 	}
@@ -113,7 +109,7 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		case "!coin": coin(s, m)
 		case "!dice": dice(s, m)
 		case "!elo": elo(parts[1:], s, m, *RiotKey)
-		//case "!whatis": classifyImage(parts[1:], s, m)
+		case "!whatis": classifyImage(parts[1:], s, m)
 		case "!update": update(adminMode, s, m)
 		case "!remindme": remindme(parts[1:], s, m)
 		case "!rm": remindme(parts[1:], s, m)

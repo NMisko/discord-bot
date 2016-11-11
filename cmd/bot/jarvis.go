@@ -319,15 +319,6 @@ func queueYoutube(input []string, s *discordgo.Session, m *discordgo.MessageCrea
     title := strings.Replace(string(titleOut),"\n","",-1) //replace all new lines
     log.Info("--get-title (with newlines removed): " + title)
 
-    // y := yt.NewYoutube()
-    // err := y.DecodeURL(link)
-    // if err != nil {
-    //     message := fmt.Sprintf("Invalid link: %s", err)
-    //     s.ChannelMessageSend(m.ChannelID, message)
-    //     return
-    // }
-    // title := stripChars(y.StreamList[0]["title"], " ") //remove whitespace
-
     if _, ok := youtubeDownloading[g.ID]; ok {
         log.Info("Enqueuing (not a new queue)")
         youtubeDownloading[g.ID].enqueue(title)

@@ -42,6 +42,10 @@ func onGuildCreate(s *discordgo.Session, event *discordgo.GuildCreate) {
 		return
 	}
 
+	if event.Guild.Unavailable == true {
+		return
+	}
+
 	for _, channel := range event.Guild.Channels {
 		if channel.ID == event.Guild.ID {
 			return

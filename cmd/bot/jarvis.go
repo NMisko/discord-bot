@@ -327,6 +327,7 @@ func queueYoutube(input []string, s *discordgo.Session, m *discordgo.MessageCrea
         youtubeDownloading[g.ID] = newStringQueue(20)
         youtubeDownloading[g.ID].enqueue(title)
     }
+
     log.Info("Starting download.")
     if err = exec.Command("youtube-dl", link, "--recode-video", "mp4").Run(); err != nil {
         log.Info("Error calling youtube-dl command: ", err)

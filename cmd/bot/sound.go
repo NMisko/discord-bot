@@ -96,6 +96,11 @@ func (s *Sound) Load(path string) error {
 	defer close(s.encodeChan)
 	go s.Encode()
 
+    if _, err := exec.Command("ffmpeg", "-i", path, "-af", "volume=0.42", path).Output(); err != nil {
+        fmt.Println("Error decreasing volume:", err)
+        return err
+    }
+
 	ffmpeg := exec.Command("ffmpeg", "-i", path, "-f", "s16le", "-ar", "48000", "-ac", "2", "pipe:1")
 	stdout, err := ffmpeg.StdoutPipe()
 	if err != nil {

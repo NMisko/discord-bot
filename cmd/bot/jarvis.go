@@ -11,12 +11,6 @@ import (
     "strconv"
     "os"
     "os/exec"
-    "io/ioutil"
-    "image"
-    "image/jpeg"
-    "image/png"
-    "bytes"
-    "regexp"
 
     log "github.com/Sirupsen/logrus"
     //yt "github.com/kkdai/youtube"

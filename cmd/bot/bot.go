@@ -4,7 +4,6 @@ import (
 	"flag"
 	"os"
 	"os/signal"
-	"strconv"
 	"strings"
 	"time"
 
@@ -53,17 +52,17 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	log.Info("message created: ", m.Content)
 	log.Info("Author: ", m.Author.ID)
 	var (
-		ourShard  = true
-		adminMode = false
+		ourShard = true
+		//adminMode = false
 	)
 
 	if len(m.Content) <= 0 || (m.Content[0] != '!' && m.Content[0] != '<') { //@J.A.R.V.I.S = <@168313836951175168>
 		return
 	}
 
-	if contains(m.Author.ID, ADMINS) {
-		adminMode = true
-	}
+	// if contains(m.Author.ID, ADMINS) {
+	// 	adminMode = true
+	// }
 
 	parts := strings.Split(m.Content, " ")
 
@@ -110,8 +109,6 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		dice(s, m)
 	case "!elo":
 		elo(parts[1:], s, m, *RiotKey)
-	case "!update":
-		update(adminMode, s, m)
 	case "!remindme":
 		remindme(parts[1:], s, m)
 	case "!rm":
@@ -143,24 +140,9 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 }
 
-//This should update stuff
-func update(admin bool, s *discordgo.Session, m *discordgo.MessageCreate) {
-	// if(admin) {
-	// 	log.Info("Updating...")
-	// 	cmd := exec.Command("./update.sh")
-	// 	cmd.Stdout = os.Stdout
-	// 	cmd.Stderr = os.Stderr
-	// 	cmd.Run()
-	// } else {
-	// 	s.ChannelMessageSend(m.ID, "You can't do that...")
-	// }
-}
-
 func main() {
 	var (
 		Token = flag.String("t", "", "Discord Authentication Token")
-		//Redis = flag.String("r", "", "Redis Connection String")
-		Shard = flag.String("s", "", "Integers to shard by")
 		Owner = flag.String("o", "", "Owner ID")
 		err   error
 	)
@@ -175,34 +157,10 @@ func main() {
 		OWNER = *Owner
 	}
 
-	// Make sure shard is either empty, or an integer
-	if *Shard != "" {
-		SHARDS = strings.Split(*Shard, ",")
-
-		for _, shard := range SHARDS {
-			if _, err := strconv.Atoi(shard); err != nil {
-				log.WithFields(log.Fields{
-					"shard": shard,
-					"error": err,
-				}).Fatal("Invalid Shard")
-				return
-			}
-		}
+	if err = os.Mkdir("temp", 0777); err != nil {
+		log.Fatal("Error creating temp directory: ", err, "\nTemp directory is used to store downloaded data and will be later deleted.")
+		return
 	}
-
-	// // If we got passed a redis server, try to connect
-	// if *Redis != "" {
-	// 	log.Info("Connecting to redis...")
-	// 	rcli = redis.NewClient(&redis.Options{Addr: *Redis, DB: 0})
-	// 	_, err = rcli.Ping().Result()
-	//
-	// 	if err != nil {
-	// 		log.WithFields(log.Fields{
-	// 			"error": err,
-	// 		}).Fatal("Failed to connect to redis")
-	// 		return
-	// 	}
-	// }
 
 	// Create a discord session
 	log.Info("Starting discord session...")
@@ -236,4 +194,8 @@ func main() {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, os.Kill)
 	<-c
+
+	if err := os.Remove("temp"); err != nil {
+		log.Warning("Unsuccessful deletion of temp folder: ", err, "\nDelete it manually.")
+	}
 }

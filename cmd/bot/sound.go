@@ -1,33 +1,33 @@
 package main
 
 import (
-    "encoding/binary"
-    "fmt"
-    "io"
-    "os/exec"
-    "time"
+	"encoding/binary"
+	"fmt"
+	"io"
+	"os/exec"
+	"time"
 
-    log "github.com/Sirupsen/logrus"
-    "github.com/bwmarrin/discordgo"
-    "github.com/layeh/gopus"
+	log "github.com/Sirupsen/logrus"
+	"github.com/bwmarrin/discordgo"
+	"github.com/layeh/gopus"
 )
 
 var (
-    // Map of Guild id's to *Play channels, used for queuing and rate-limiting guilds
-    queues map[string]chan *Play = make(map[string]chan *Play)
-    songs map[string] string = make(map[string] string)
+	// Map of Guild id's to *Play channels, used for queuing and rate-limiting guilds
+	queues map[string]chan *Play = make(map[string]chan *Play)
+	songs  map[string]string     = make(map[string]string)
 
-    // Owner
-    OWNER string
+	// Owner
+	OWNER string
 
-    // Sound encoding settings
+	// Sound encoding settings
 	BITRATE        = 128
 	MAX_QUEUE_SIZE = 6
 
-    //Shard (or -1)
-    SHARDS []string = make([]string, 0)
+	//Shard (or -1)
+	SHARDS []string = make([]string, 0)
 
-    skip bool = false
+	skip bool = false
 )
 
 // Play represents an individual use of the !airhorn command
@@ -36,7 +36,7 @@ type Play struct {
 	ChannelID string
 	UserID    string
 	Sound     *Sound
-    Title     string
+	Title     string
 }
 
 // Sound represents a sound clip
@@ -57,8 +57,6 @@ func createSound(Name string) *Sound {
 		buffer:     make([][]byte, 0),
 	}
 }
-
-
 
 // Encode reads data from ffmpeg and encodes it using gopus
 func (s *Sound) Encode() {
@@ -96,9 +94,9 @@ func (s *Sound) Load(path string) error {
 	defer close(s.encodeChan)
 	go s.Encode()
 
-    if _, err := exec.Command("ffmpeg", "-i", path, "-af", "volume=0.42", path).Output(); err != nil {
-        fmt.Println("Error decreasing volume:", err)
-    }
+	if _, err := exec.Command("ffmpeg", "-i", path, "-af", "volume=0.42", path).Output(); err != nil {
+		fmt.Println("Error decreasing volume:", err)
+	}
 
 	ffmpeg := exec.Command("ffmpeg", "-i", path, "-f", "s16le", "-ar", "48000", "-ac", "2", "pipe:1")
 	stdout, err := ffmpeg.StdoutPipe()
@@ -138,15 +136,15 @@ func (s *Sound) Play(vc *discordgo.VoiceConnection) {
 	vc.Speaking(true)
 	defer vc.Speaking(false)
 
-    // t := time.NewTicker(time.Duration(1) * time.Second)
-    // go s.control(t)
+	// t := time.NewTicker(time.Duration(1) * time.Second)
+	// go s.control(t)
 
 	for _, buff := range s.buffer {
 		vc.OpusSend <- buff
-        if skip == true {
-            skip = false
-            break
-        }
+		if skip == true {
+			skip = false
+			break
+		}
 	}
 }
 
@@ -183,7 +181,6 @@ func shardContains(guildid string) bool {
 	return true
 }
 
-
 // Enqueues a play into the ratelimit/buffer guild queue
 func enqueuePlay(user *discordgo.User, guild *discordgo.Guild, sound *Sound, title string) {
 	// Grab the users voice channel
@@ -201,7 +198,7 @@ func enqueuePlay(user *discordgo.User, guild *discordgo.Guild, sound *Sound, tit
 		ChannelID: channel.ID,
 		UserID:    user.ID,
 		Sound:     sound,
-        Title:     title,
+		Title:     title,
 	}
 
 	// Check if we already have a connection to this guild
@@ -218,7 +215,7 @@ func enqueuePlay(user *discordgo.User, guild *discordgo.Guild, sound *Sound, tit
 }
 
 func next(GuildID string) {
-    skip = true
+	skip = true
 }
 
 // Play a sound
@@ -249,7 +246,7 @@ func playSound(play *Play, vc *discordgo.VoiceConnection) (err error) {
 	// Play the sound
 	play.Sound.Play(vc)
 
-    youtubeQueues[play.GuildID].remove(play.Title)
+	youtubeQueues[play.GuildID].remove(play.Title)
 
 	// If there is another song in the queue, recurse and play that
 	if len(queues[play.GuildID]) > 0 {

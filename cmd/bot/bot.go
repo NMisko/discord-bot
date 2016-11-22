@@ -15,21 +15,17 @@ import (
 var (
 	// discordgo session
 	discord *discordgo.Session
-	me *discordgo.User
+	me      *discordgo.User
 	RiotKey = flag.String("k", "", "Riot API Key")
 
-	ADMINS = []string {
+	ADMINS = []string{
 		"118830934710681602", //Beni
 		"118641605837062144", //Nicola
 	}
 
-	RESTRICTED = []string {
+	RESTRICTED = []string{}
 
-	}
-
-	BANNED = []string {
-
-	}
+	BANNED = []string{}
 )
 
 func onReady(s *discordgo.Session, event *discordgo.Ready) {
@@ -57,19 +53,17 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	log.Info("message created: ", m.Content)
 	log.Info("Author: ", m.Author.ID)
 	var (
-		ourShard = true
+		ourShard  = true
 		adminMode = false
 	)
 
-	if (len(m.Content) <= 0 || (m.Content[0] != '!' && m.Content[0] != '<')) { //@J.A.R.V.I.S = <@168313836951175168>
+	if len(m.Content) <= 0 || (m.Content[0] != '!' && m.Content[0] != '<') { //@J.A.R.V.I.S = <@168313836951175168>
 		return
 	}
 
-	if(contains(m.Author.ID, ADMINS)) {
+	if contains(m.Author.ID, ADMINS) {
 		adminMode = true
 	}
-
-
 
 	parts := strings.Split(m.Content, " ")
 
@@ -101,35 +95,51 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 
-	if(contains(m.Author.ID, BANNED)) {
+	if contains(m.Author.ID, BANNED) {
 		return
 	}
 
 	switch strings.ToLower(parts[0]) {
-		case "!weather": weather(parts[1:], s, m)
-		case "<@168313836951175168>": jarvis(parts[1:], s, m)
-		case "!coin": coin(s, m)
-		case "!dice": dice(s, m)
-		case "!elo": elo(parts[1:], s, m, *RiotKey)
-		case "!update": update(adminMode, s, m)
-		case "!remindme": remindme(parts[1:], s, m)
-		case "!rm": remindme(parts[1:], s, m)
-		case "!help":	help(s, m)
-		case "!queue": printQueue(s, m, guild)
-		case "!song": currentsong(s,m,guild)
-		case "!startpoll": startPoll(parts[1:], s, m, guild)
-		case "!vote": vote(parts[1:], s, m, guild)
-		case "!endpoll": endPoll(s, m, guild)
+	case "!weather":
+		weather(parts[1:], s, m)
+	case "<@168313836951175168>":
+		jarvis(parts[1:], s, m)
+	case "!coin":
+		coin(s, m)
+	case "!dice":
+		dice(s, m)
+	case "!elo":
+		elo(parts[1:], s, m, *RiotKey)
+	case "!update":
+		update(adminMode, s, m)
+	case "!remindme":
+		remindme(parts[1:], s, m)
+	case "!rm":
+		remindme(parts[1:], s, m)
+	case "!help":
+		help(s, m)
+	case "!queue":
+		printQueue(s, m, guild)
+	case "!song":
+		currentsong(s, m, guild)
+	case "!startpoll":
+		startPoll(parts[1:], s, m, guild)
+	case "!vote":
+		vote(parts[1:], s, m, guild)
+	case "!endpoll":
+		endPoll(s, m, guild)
 	}
 
 	//My ears
-	if(contains(m.Author.ID, RESTRICTED)) {
+	if contains(m.Author.ID, RESTRICTED) {
 		return
 	}
 
 	switch strings.ToLower(parts[0]) {
-		case "!play": go queueYoutube(parts[1:], s, m, guild)
-		case "!skip": nextYoutube(s, m, guild)
+	case "!play":
+		go queueYoutube(parts[1:], s, m, guild)
+	case "!skip":
+		nextYoutube(s, m, guild)
 	}
 }
 
@@ -146,7 +156,6 @@ func update(admin bool, s *discordgo.Session, m *discordgo.MessageCreate) {
 	// }
 }
 
-
 func main() {
 	var (
 		Token = flag.String("t", "", "Discord Authentication Token")
@@ -157,7 +166,7 @@ func main() {
 	)
 	flag.Parse()
 
-	if(*Token == "" || *RiotKey == "") {
+	if *Token == "" || *RiotKey == "" {
 		flag.PrintDefaults()
 		return
 	}

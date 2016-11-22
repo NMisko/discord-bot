@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
-	"github.com/bwmarrin/discordgo"
 	"strings"
 	"time"
+
+	"github.com/bwmarrin/discordgo"
 
 	log "github.com/Sirupsen/logrus"
 )

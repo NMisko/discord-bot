@@ -4,12 +4,9 @@ import (
 	"flag"
 	"os"
 	"os/signal"
-	"strconv"
-	"strings"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/bwmarrin/discordgo"
-	redis "gopkg.in/redis.v3"
 )
 
 var (
@@ -71,7 +68,7 @@ func main() {
 		return
 	}
 
-	err = discord.UpdateStatus(0,"League Of Legends")
+	err = discord.UpdateStatus(0, "League Of Legends")
 	if err != nil {
 		log.WithFields(log.Fields{
 			"error": err,

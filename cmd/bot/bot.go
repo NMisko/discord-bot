@@ -125,6 +125,10 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		vote(parts[1:], s, m, guild)
 	case "!endpoll":
 		endPoll(s, m, guild)
+	case "!join":
+		joinChannel(m.Author, guild)
+	case "!leave":
+		leaveChannel(m.Author, guild)
 	}
 
 	//My ears

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -192,9 +193,9 @@ func newStringQueue(size int) *StringQueue {
 }
 
 //need to implement what happens if queue full
-func (q *StringQueue) enqueue(s string) {
+func (q *StringQueue) enqueue(s string) error {
 	//Move queue back to front
-	if q.tail == q.size-2 {
+	if q.tail == q.size-1 {
 		var newstack = make([]string, q.size)
 		j := 0
 		for i := q.head; i <= q.tail; i++ {
@@ -205,21 +206,29 @@ func (q *StringQueue) enqueue(s string) {
 		q.head = 0
 		q.stack = newstack
 	}
-
-	q.stack[q.tail+1] = s
-	q.tail++
+	if q.tail == q.size-1 {
+		return errors.New("Queue full. Cannot enqueue anymore.")
+	} else {
+		q.stack[q.tail+1] = s
+		q.tail++
+		return nil
+	}
 }
 
 func (q *StringQueue) peek() string {
 	return q.stack[q.head]
 }
 
-func (q *StringQueue) dequeue() string {
-	out := q.stack[q.head]
-	q.stack[q.head] = ""
-	q.head++
+func (q *StringQueue) dequeue() (string, error) {
+	if q.tail < q.head {
+		return "", errors.New("Queue already empty. Cannot dequeue.")
+	} else {
+		out := q.stack[q.head]
+		q.stack[q.head] = ""
+		q.head++
 
-	return out
+		return out, nil
+	}
 }
 
 //removes first occurrence of title
@@ -227,11 +236,12 @@ func (q *StringQueue) remove(s string) {
 	for i := q.head; i <= q.tail; i++ {
 		if q.stack[i] == s {
 			for j := i; j <= q.tail; j++ {
-				//if(q.stack[j+1] != nil) {
-				q.stack[j] = q.stack[j+1]
-				//}
+				if j+1 < q.length() && q.stack[j+1] != "" {
+					q.stack[j] = q.stack[j+1]
+				}
 			}
 			q.tail = q.tail - 1
+			return
 		}
 	}
 }

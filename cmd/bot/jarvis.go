@@ -251,7 +251,10 @@ func queueYoutube(input []string, s *discordgo.Session, m *discordgo.MessageCrea
 	youtubeDownloading[g.ID].remove(title)
 
 	if _, ok := youtubeQueues[g.ID]; ok {
-		youtubeQueues[g.ID].enqueue(title)
+		err = youtubeQueues[g.ID].enqueue(title)
+		if err != nil {
+			s.ChannelMessageSend(m.ChannelID, "Queue full. sry m8")
+		}
 	} else {
 		youtubeQueues[g.ID] = newStringQueue(20)
 		youtubeQueues[g.ID].enqueue(title)

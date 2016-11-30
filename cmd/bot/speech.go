@@ -89,6 +89,7 @@ func listen(vc *discordgo.VoiceConnection) {
 
 	// NEED TO DECODE 512 SAMPLES AT A TIME
 	// Discord Opus: 2 channels (stereo) and a sample rate of 48Khz
+	// Need to resample sound to 16khz
 	for {
 		recv := <-vc.OpusRecv
 		//log.Info(recv)

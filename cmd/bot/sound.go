@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"time"
 
@@ -94,11 +95,12 @@ func (s *Sound) Load(path string) error {
 	defer close(s.encodeChan)
 	go s.Encode()
 
-	if _, err := exec.Command("ffmpeg", "-i", path, "-af", "volume=0.42", path).Output(); err != nil {
+	newpath := fmt.Sprintf("%sout.m4a", path) //overwriting file doesn't work to decrease volume
+	if _, err := exec.Command("ffmpeg", "-y", "-i", path, "-af", "volume=0.1", newpath).Output(); err != nil {
 		fmt.Println("Error decreasing volume:", err)
 	}
 
-	ffmpeg := exec.Command("ffmpeg", "-i", path, "-f", "s16le", "-ar", "48000", "-ac", "2", "pipe:1")
+	ffmpeg := exec.Command("ffmpeg", "-i", newpath, "-f", "s16le", "-ar", "48000", "-ac", "2", "pipe:1")
 	stdout, err := ffmpeg.StdoutPipe()
 	if err != nil {
 		fmt.Println("StdoutPipe Error:", err)
@@ -129,6 +131,8 @@ func (s *Sound) Load(path string) error {
 		// write pcm data to the encodeChan
 		s.encodeChan <- InBuf
 	}
+
+	return os.Remove(newpath)
 }
 
 // Plays this sound over the specified VoiceConnection

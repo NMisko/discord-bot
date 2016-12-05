@@ -218,6 +218,12 @@ func queueYoutube(input []string, s *discordgo.Session, m *discordgo.MessageCrea
 		return
 	}
 	link := input[0]
+
+	if strings.Contains(link, "&") || !strings.Contains(link, "www.youtube.com/watch?v=") {
+		s.ChannelMessageSend(m.ChannelID, "That link doesn't look right...")
+		return
+	}
+
 	log.Info("Downloading ", link)
 
 	if filenameOut, err = exec.Command("youtube-dl", "-f", "140", link, "--get-filename").Output(); err != nil {

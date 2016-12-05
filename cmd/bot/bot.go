@@ -158,8 +158,7 @@ func main() {
 	}
 
 	if err = os.Mkdir("temp", 0777); err != nil {
-		log.Fatal("Error creating temp directory: ", err, "\nTemp directory is used to store downloaded data and will be later deleted.")
-		return
+		log.Warning("Error creating temp directory: ", err, "\nTemp directory is used to store downloaded data and will be later deleted.")
 	}
 
 	// Create a discord session

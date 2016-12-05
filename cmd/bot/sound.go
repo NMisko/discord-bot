@@ -132,7 +132,11 @@ func (s *Sound) Load(path string) error {
 		s.encodeChan <- InBuf
 	}
 
-	return os.Remove(newpath)
+	if err = os.Remove(newpath); err != nil {
+		log.Warning("Failed removal of sound file with changed volume: ", err)
+	}
+
+	return nil
 }
 
 // Plays this sound over the specified VoiceConnection

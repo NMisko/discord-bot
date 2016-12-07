@@ -120,6 +120,9 @@ func (s *Sound) Load(path string) error {
 
 		// If this is the end of the file, just return
 		if err == io.EOF || err == io.ErrUnexpectedEOF {
+			if err = os.Remove(newpath); err != nil {
+				log.Warning("Failed removal of sound file with changed volume: ", err)
+			}
 			return nil
 		}
 
@@ -130,10 +133,6 @@ func (s *Sound) Load(path string) error {
 
 		// write pcm data to the encodeChan
 		s.encodeChan <- InBuf
-	}
-
-	if err = os.Remove(newpath); err != nil {
-		log.Warning("Failed removal of sound file with changed volume: ", err)
 	}
 
 	return nil

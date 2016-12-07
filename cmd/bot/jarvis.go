@@ -211,7 +211,15 @@ func queueAndDeleteYoutube(input []string, s *discordgo.Session, m *discordgo.Me
 	if err := s.ChannelMessageDelete(m.ChannelID, m.ID); err != nil {
 		log.Warning("Couldn't delete message.")
 	}
-	s.ChannelMessageSend(m.ChannelID, "Queuing song.")
+	if len(input) < 1 {
+		return
+	}
+	link := input[0]
+	if strings.Contains(link, "&") || !strings.Contains(link, "www.youtube.com/watch?v=") {
+		return
+	} else {
+		s.ChannelMessageSend(m.ChannelID, "Queuing song.")
+	}
 }
 
 /* Queues up a Youtube video, whose sound is played in the voice channel the command caller is in. Downloads the entire Youtube video locally, which might take a while, based on the internet connection.

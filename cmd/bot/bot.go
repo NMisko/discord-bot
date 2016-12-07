@@ -103,8 +103,6 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		weather(parts[1:], s, m)
 	case "<@168313836951175168>":
 		jarvis(parts[1:], s, m)
-	case "!coin":
-		coin(s, m)
 	case "!dice":
 		dice(s, m)
 	case "!elo":

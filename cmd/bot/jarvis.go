@@ -206,11 +206,10 @@ func help(s *discordgo.Session, m *discordgo.MessageCreate) {
 }
 
 func queueAndDeleteYoutube(input []string, s *discordgo.Session, m *discordgo.MessageCreate, g *discordgo.Guild) {
-	queueYoutube(input, s, m, g)
-
 	if err := s.ChannelMessageDelete(m.ChannelID, m.ID); err != nil {
 		log.Warning("Couldn't delete message.")
 	}
+	queueYoutube(input, s, m, g)
 	if len(input) < 1 {
 		return
 	}

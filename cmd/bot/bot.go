@@ -135,6 +135,8 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	switch strings.ToLower(parts[0]) {
 	case "!play":
 		go queueYoutube(parts[1:], s, m, guild)
+	case "!plays":
+		go queueAndDeleteYoutube(parts[1:], s, m, guild)
 	case "!skip":
 		nextYoutube(s, m, guild)
 	}

@@ -174,6 +174,9 @@ func weather(input []string, s *discordgo.Session, m *discordgo.MessageCreate) {
 /* 	Answers the question 8-Ball Style randomly.
  */
 func jarvis(input []string, s *discordgo.Session, m *discordgo.MessageCreate) {
+	if len(input) < 1 {
+		return
+	}
 	if string(input[len(input)-1][len(input[len(input)-1])-1]) == "?" {
 		if m.Author.ID == "119818300308848651" { //Für Miguel
 			s.ChannelMessageSend(m.ChannelID, "No.")

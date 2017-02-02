@@ -37,7 +37,7 @@ func onGuildCreate(s *discordgo.Session, event *discordgo.GuildCreate) {
 		return
 	}
 
-	if *event.Guild.Unavailable == true {
+	if event.Guild.Unavailable == true {
 		return
 	}
 

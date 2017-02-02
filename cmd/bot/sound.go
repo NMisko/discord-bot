@@ -10,7 +10,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/bwmarrin/discordgo"
-	"github.com/layeh/gopus"
+	"layeh.com/gopus"
 )
 
 var (

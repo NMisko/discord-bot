@@ -5,7 +5,6 @@ import (
 	"os"
 	"os/signal"
 	"strings"
-	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/bwmarrin/discordgo"
@@ -182,9 +181,6 @@ func main() {
 		}).Fatal("Failed to create discord websocket connection")
 		return
 	}
-
-	t := time.NewTicker(time.Duration(1) * time.Second)
-	go reminderService(*t)
 
 	// We're running!
 	log.Info("JARVIS READY.")

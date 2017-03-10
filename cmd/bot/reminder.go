@@ -6,8 +6,6 @@ import (
 	"time"
 
 	"github.com/bwmarrin/discordgo"
-
-	log "github.com/Sirupsen/logrus"
 )
 
 var (
@@ -35,38 +33,12 @@ func remindme(input []string, s *discordgo.Session, m *discordgo.MessageCreate) 
 		s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("usage: !remindme <seconds> <message> or !rm <seconds> <message>"))
 		return
 	}
+	go remind(time.Duration(i)*time.Second, j, m.ChannelID, m.Author.ID)
 
-	addReminder(time.Duration(i)*time.Second, j, m.ChannelID, m.Author.ID)
 	s.ChannelMessageSend(m.ChannelID, "Ok.")
 }
 
-func reminderService(t time.Ticker) {
-	for {
-		<-t.C
-		for i, r := range reminders {
-			if !r.Moment.IsZero() {
-				if time.Now().After(r.Moment) {
-					discord.ChannelMessageSend(r.ChannelID, fmt.Sprintf("<@%s> %s", r.AuthorID, r.Text))
-					reminders[i] = Reminder{}
-				}
-			}
-		}
-	}
-}
-
-func addReminder(d time.Duration, text string, channelid string, authorid string) {
-	addedreminder := false
-	log.Info("adding reminder ", d, " : ", text)
-	future := time.Now().Add(d)
-	log.Info(future)
-	for i, r := range reminders {
-		if r.Moment.IsZero() {
-			reminders[i] = Reminder{future, text, channelid, authorid}
-			addedreminder = true
-			break
-		}
-	}
-	if !addedreminder {
-		discord.ChannelMessageSend(channelid, fmt.Sprintf("Too many reminders at once. NotLikeThis"))
-	}
+func remind(d time.Duration, text string, channelid string, authorid string) {
+	time.Sleep(d)
+	discord.ChannelMessageSend(channelid, fmt.Sprintf("<@%s> %s", authorid, text))
 }

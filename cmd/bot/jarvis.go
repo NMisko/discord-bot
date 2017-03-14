@@ -247,6 +247,8 @@ func queueYoutube(input []string, s *discordgo.Session, m *discordgo.MessageCrea
 
 	if filenameOut, err = exec.Command("youtube-dl", "-f", "140", link, "--get-filename").Output(); err != nil {
 		log.Info("Error calling youtube-dl command (only to get id): ", err)
+		s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Download failed :( Sorry <@%s>", m.Author.ID))
+		return
 	}
 	file := strings.Replace(string(filenameOut), "\n", "", -1) //replace all new lines
 	log.Info("--get-filename (with newlines removed): " + file)
@@ -254,6 +256,8 @@ func queueYoutube(input []string, s *discordgo.Session, m *discordgo.MessageCrea
 	//THIS RETURNS A NEWLINE AT THE END
 	if titleOut, err = exec.Command("youtube-dl", "-f", "140", link, "--get-title").Output(); err != nil {
 		log.Info("Error calling youtube-dl command (only to get id): ", err)
+		s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Download failed :( Sorry <@%s>", m.Author.ID))
+		return
 	}
 	title := strings.Replace(string(titleOut), "\n", "", -1) //replace all new lines
 	log.Info("--get-title (with newlines removed): " + title)
@@ -270,6 +274,8 @@ func queueYoutube(input []string, s *discordgo.Session, m *discordgo.MessageCrea
 	log.Info("Starting download.")
 	if err = exec.Command("youtube-dl", "-f", "140", link).Run(); err != nil {
 		log.Info("Error calling youtube-dl command: ", err)
+		s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Download failed :( Sorry <@%s>", m.Author.ID))
+		return
 	}
 	log.Info("Finished download.")
 

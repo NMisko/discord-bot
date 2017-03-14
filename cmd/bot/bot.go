@@ -13,9 +13,14 @@ import (
 
 var (
 	// discordgo session
-	discord *discordgo.Session
-	me      *discordgo.User
-	RiotKey = flag.String("k", "", "Riot API Key")
+	discord      *discordgo.Session
+	me           *discordgo.User
+	RiotKey      = flag.String("k", "", "Riot API Key")
+	CleverbotKey = flag.String("c", "", "Cleverbot API Key")
+	Token        = flag.String("t", "", "Discord Authentication Token")
+	Owner        = flag.String("o", "", "Owner ID")
+
+	err error
 
 	ADMINS = []string{
 		"118830934710681602", //Beni
@@ -102,7 +107,7 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	case "!weather":
 		weather(parts[1:], s, m)
 	case "<@168313836951175168>":
-		jarvis(parts[1:], s, m)
+		jarvis(parts[1:], s, m, guild, *CleverbotKey)
 	case "!dice":
 		dice(s, m)
 	case "!elo":
@@ -143,14 +148,9 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 }
 
 func main() {
-	var (
-		Token = flag.String("t", "", "Discord Authentication Token")
-		Owner = flag.String("o", "", "Owner ID")
-		err   error
-	)
 	flag.Parse()
 
-	if *Token == "" || *RiotKey == "" {
+	if *Token == "" || *RiotKey == "" || *CleverbotKey == "" {
 		flag.PrintDefaults()
 		return
 	}

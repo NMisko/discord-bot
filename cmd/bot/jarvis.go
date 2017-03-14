@@ -9,11 +9,12 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
+	clever "github.com/ugjka/cleverbot-go"
 
 	log "github.com/Sirupsen/logrus"
-	//yt "github.com/kkdai/youtube"
 )
 
 type MessageAck struct {
@@ -59,7 +60,9 @@ var (
 	youtubeQueues      map[string]*StringQueue = make(map[string]*StringQueue)
 	youtubeDownloading map[string]*StringQueue = make(map[string]*StringQueue)
 
-	polls map[string]*Poll = make(map[string]*Poll)
+	polls             map[string]*Poll           = make(map[string]*Poll)
+	conversation      map[string]*clever.Session = make(map[string]*clever.Session)
+	conversationTimer map[string]int             = make(map[string]int)
 )
 
 /* 	Sends messages with information about the given players LoL rank.
@@ -173,17 +176,32 @@ func weather(input []string, s *discordgo.Session, m *discordgo.MessageCreate) {
 
 /* 	Answers the question 8-Ball Style randomly.
  */
-func jarvis(input []string, s *discordgo.Session, m *discordgo.MessageCreate) {
+func jarvis(input []string, s *discordgo.Session, m *discordgo.MessageCreate, g *discordgo.Guild, cleverbotKey string) {
 	if len(input) < 1 {
 		return
 	}
-	if string(input[len(input)-1][len(input[len(input)-1])-1]) == "?" {
-		if m.Author.ID == "119818300308848651" { //Für Miguel
-			s.ChannelMessageSend(m.ChannelID, "No.")
-		} else {
-			s.ChannelMessageSend(m.ChannelID, JARVIS_ANSWERS[rand.Intn(len(JARVIS_ANSWERS))])
-		}
+	conversationTimer[g.ID] = 100 //10 minutes, also, this should be synced
+
+	if conversation[g.ID] == nil {
+		conversation[g.ID] = clever.New(cleverbotKey)
+		tryToCloseConversation(g)
 	}
+	answer, err := conversation[g.ID].Ask(strings.Join(input, " "))
+	if err != nil {
+		log.Info("Cleverbot error")
+		log.Info(err)
+		s.ChannelMessageSend(m.ChannelID, "...")
+	}
+
+	s.ChannelMessageSend(m.ChannelID, answer)
+}
+
+func tryToCloseConversation(g *discordgo.Guild) {
+	for conversationTimer[g.ID] > 0 {
+		time.Sleep(6 * time.Second)
+		conversationTimer[g.ID] = conversationTimer[g.ID] - 5
+	}
+	conversation[g.ID].Reset()
 }
 
 /*	Uploads a random coin face.

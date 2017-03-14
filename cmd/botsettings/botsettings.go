@@ -1,10 +1,10 @@
 package main
 
 import (
-	"flag"
-	"io/ioutil"
 	"encoding/base64"
+	"flag"
 	"fmt"
+	"io/ioutil"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/bwmarrin/discordgo"
@@ -60,9 +60,9 @@ func main() {
 		}).Fatal("Failed to create discord websocket connection")
 		return
 	}
-
+	var memes string
 	var avatar []byte
-	if avatar,err = ioutil.ReadFile(*Imagefile); err != nil {
+	if avatar, err = ioutil.ReadFile(*Imagefile); err != nil {
 		log.WithFields(log.Fields{
 			"error": err,
 		}).Fatal("-- Failed reading file")

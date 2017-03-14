@@ -29,7 +29,11 @@ func main() {
 	)
 	flag.Parse()
 
-	if *Token == "" || *ID == "" || *Nickname == "" || *Imagefile == "" || *Status == "" {
+	nicknameDefined := !(*Nickname == "")
+	imageDefined := !(*Imagefile == "")
+	statusDefined := !(*Status == "")
+
+	if *Token == "" || *ID == "" {
 		flag.PrintDefaults()
 		return
 	}
@@ -60,32 +64,41 @@ func main() {
 		}).Fatal("Failed to create discord websocket connection")
 		return
 	}
-	var memes string
-	var avatar []byte
-	if avatar, err = ioutil.ReadFile(*Imagefile); err != nil {
-		log.WithFields(log.Fields{
-			"error": err,
-		}).Fatal("-- Failed reading file")
-		return
+
+	if imageDefined && nicknameDefined {
+		var avatar []byte
+		if avatar, err = ioutil.ReadFile(*Imagefile); err != nil {
+			log.WithFields(log.Fields{
+				"error": err,
+			}).Fatal("-- Failed reading file")
+			return
+		}
+
+		transmittedAvatarData := fmt.Sprintf("data:image/png;base64,%s", base64.StdEncoding.EncodeToString(avatar))
+
+		log.Info("Setting avatar and nickname.")
+		me, err = discord.UserUpdate(me.Email, "", *Nickname, transmittedAvatarData, "")
+		if err != nil {
+			log.WithFields(log.Fields{
+				"error": err,
+			}).Fatal("-- Failed user update")
+			return
+		}
+	} else {
+		log.Info("Avatar and nickname not updated, both have to be defined, for one to be updated.")
 	}
 
-	transmittedAvatarData := fmt.Sprintf("data:image/png;base64,%s", base64.StdEncoding.EncodeToString(avatar))
-
-	log.Info("Setting avatar and nickname.")
-	me, err = discord.UserUpdate(me.Email, "", *Nickname, transmittedAvatarData, "")
-	if err != nil {
-		log.WithFields(log.Fields{
-			"error": err,
-		}).Fatal("-- Failed user update")
-		return
-	}
-
-	err = discord.UpdateStatus(0, *Status)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"error": err,
-		}).Fatal("-- Failed status update")
-		return
+	if statusDefined {
+		err = discord.UpdateStatus(0, *Status)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"error": err,
+			}).Fatal("-- Failed status update")
+			return
+		}
+		log.Info("Updated status to: ", *Status)
+	} else {
+		log.Info("Status not updated, due to no status being given.")
 	}
 
 	log.Info("Finished!")

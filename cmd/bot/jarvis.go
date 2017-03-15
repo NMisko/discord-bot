@@ -402,6 +402,9 @@ func vote(input []string, s *discordgo.Session, m *discordgo.MessageCreate, g *d
 		s.ChannelMessageSend(m.ChannelID, "There's no poll! Start a poll with !startpoll")
 		return
 	}
+	if err := s.ChannelMessageDelete(m.ChannelID, m.ID); err != nil {
+		log.Warning("Couldn't delete message.")
+	}
 	if contains(m.Author.ID, polls[g.ID].voters) {
 		s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("<@%s> : You already voted once...", m.Author.ID))
 		return

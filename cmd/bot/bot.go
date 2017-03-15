@@ -34,7 +34,6 @@ var (
 
 func onReady(s *discordgo.Session, event *discordgo.Ready) {
 	log.Info("Recieved READY payload")
-	s.UpdateStatus(0, "League Of Legends")
 }
 
 func onGuildCreate(s *discordgo.Session, event *discordgo.GuildCreate) {

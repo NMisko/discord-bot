@@ -180,13 +180,15 @@ func jarvis(input []string, s *discordgo.Session, m *discordgo.MessageCreate, g 
 	if len(input) < 1 {
 		return
 	}
-	conversationTimer[g.ID] = 100 //10 minutes, also, this should be synced
+	conversationTimer[g.ID] = 100 //In seconds.
 
 	if conversation[g.ID] == nil {
+		log.Info("New Cleverbot conversation started.")
 		conversation[g.ID] = clever.New(cleverbotKey)
-		tryToCloseConversation(g)
+		go tryToCloseConversation(g)
 	}
-	answer, err := conversation[g.ID].Ask(strings.Join(input, " "))
+	sentence := strings.Replace(strings.Join(input, " "), "\x03", "", -1) //replacing annoying \x03
+	answer, err := conversation[g.ID].Ask(sentence)
 	if err != nil {
 		log.Info("Cleverbot error")
 		log.Info(err)
@@ -198,9 +200,10 @@ func jarvis(input []string, s *discordgo.Session, m *discordgo.MessageCreate, g 
 
 func tryToCloseConversation(g *discordgo.Guild) {
 	for conversationTimer[g.ID] > 0 {
-		time.Sleep(6 * time.Second)
+		time.Sleep(5 * time.Second)
 		conversationTimer[g.ID] = conversationTimer[g.ID] - 5
 	}
+	log.Info("Conversation reset.")
 	conversation[g.ID].Reset()
 }
 

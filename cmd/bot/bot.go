@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
 	"os/signal"
 	"strings"
@@ -101,11 +102,13 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if contains(m.Author.ID, BANNED) {
 		return
 	}
+	tag := fmt.Sprintf("<@%s>", me.ID)
+	log.Info(tag)
 
 	switch strings.ToLower(parts[0]) {
 	case "!weather":
 		weather(parts[1:], s, m)
-	case "<@168313836951175168>":
+	case tag:
 		jarvis(parts[1:], s, m, guild, *CleverbotKey)
 	case "!dice":
 		dice(s, m)
@@ -184,8 +187,10 @@ func main() {
 		return
 	}
 
+	me, _ = discord.User("@me")
+
 	// We're running!
-	log.Info("JARVIS READY.")
+	log.Info(me.Username, " READY.")
 
 	// Wait for a signal to quit
 	c := make(chan os.Signal, 1)

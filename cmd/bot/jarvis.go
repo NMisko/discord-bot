@@ -319,7 +319,7 @@ func queueYoutube(input []string, s *discordgo.Session, m *discordgo.MessageCrea
 	sound := createSound(link)
 	sound.Load(file)
 
-	go enqueuePlay(m.Author, g, sound, title)
+	go enqueueSound(m.Author, g, sound, title)
 
 	err = os.Remove(file)
 	if err != nil {
@@ -333,6 +333,13 @@ func queueYoutube(input []string, s *discordgo.Session, m *discordgo.MessageCrea
 func nextYoutube(s *discordgo.Session, m *discordgo.MessageCreate, g *discordgo.Guild) {
 	s.ChannelMessageSend(m.ChannelID, "Skipping song.")
 	next(g.ID)
+}
+
+/* Loops current songs.
+ */
+func loopYoutube(s *discordgo.Session, m *discordgo.MessageCreate, g *discordgo.Guild) {
+	s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Looping: %t.", !loops[g.ID]))
+	loop(g.ID)
 }
 
 func currentsong(s *discordgo.Session, m *discordgo.MessageCreate, g *discordgo.Guild) {
@@ -372,6 +379,10 @@ func printQueue(s *discordgo.Session, m *discordgo.MessageCreate, g *discordgo.G
 			}
 		}
 	}
+	if (!okq || yq.length() == 0) && (!okd || ydq.length() == 0) {
+		message = message + "Queue is empty\n"
+	}
+	message = message + "Looping is set to: " + strconv.FormatBool(loops[g.ID])
 	s.ChannelMessageSend(m.ChannelID, message)
 }
 

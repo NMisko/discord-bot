@@ -14,9 +14,13 @@ import (
 )
 
 var (
+	// Replace all this with struct
 	// Map of Guild id's to *Play channels, used for queuing and rate-limiting guilds
-	queues map[string]chan *Play = make(map[string]chan *Play)
-	songs  map[string]string     = make(map[string]string)
+	queues  map[string]chan *Play = make(map[string]chan *Play)
+	songs   map[string]string     = make(map[string]string)
+	skips   map[string]bool       = make(map[string]bool)
+	loops   map[string]bool       = make(map[string]bool)
+	current map[string]string     = make(map[string]string)
 
 	// Owner
 	OWNER string
@@ -27,8 +31,6 @@ var (
 
 	//Shard (or -1)
 	SHARDS []string = make([]string, 0)
-
-	skip bool = false
 )
 
 // Play represents an individual use of the !airhorn command
@@ -148,8 +150,8 @@ func (s *Sound) Play(vc *discordgo.VoiceConnection) {
 
 	for _, buff := range s.buffer {
 		vc.OpusSend <- buff
-		if skip == true {
-			skip = false
+		if skips[vc.GuildID] == true {
+			//skips[vc.GuildID] = false
 			break
 		}
 	}
@@ -189,7 +191,8 @@ func shardContains(guildid string) bool {
 }
 
 // Enqueues a play into the ratelimit/buffer guild queue
-func enqueuePlay(user *discordgo.User, guild *discordgo.Guild, sound *Sound, title string) {
+func enqueueSound(user *discordgo.User, guild *discordgo.Guild, sound *Sound, title string) {
+	skips[guild.ID] = false
 	// Grab the users voice channel
 	channel := getCurrentVoiceChannel(user, guild)
 	if channel == nil {
@@ -208,21 +211,29 @@ func enqueuePlay(user *discordgo.User, guild *discordgo.Guild, sound *Sound, tit
 		Title:     title,
 	}
 
+	enqueuePlay(play)
+}
+
+func enqueuePlay(play *Play) {
 	// Check if we already have a connection to this guild
-	_, exists := queues[guild.ID]
+	_, exists := queues[play.GuildID]
 
 	if exists {
-		if len(queues[guild.ID]) < MAX_QUEUE_SIZE {
-			queues[guild.ID] <- play
+		if len(queues[play.GuildID]) < MAX_QUEUE_SIZE {
+			queues[play.GuildID] <- play
 		}
 	} else {
-		queues[guild.ID] = make(chan *Play, MAX_QUEUE_SIZE)
+		queues[play.GuildID] = make(chan *Play, MAX_QUEUE_SIZE)
 		playSound(play, nil)
 	}
 }
 
 func next(GuildID string) {
-	skip = true
+	skips[GuildID] = true
+}
+
+func loop(GuildID string) {
+	loops[GuildID] = !loops[GuildID]
 }
 
 // Play a sound
@@ -248,12 +259,25 @@ func playSound(play *Play, vc *discordgo.VoiceConnection) (err error) {
 		time.Sleep(time.Millisecond * 125)
 	}
 	// Sleep for a specified amount of time before playing the sound
-	time.Sleep(time.Millisecond * 32)
+	time.Sleep(time.Millisecond * 500)
 
 	// Play the sound
 	play.Sound.Play(vc)
 
 	youtubeQueues[play.GuildID].remove(play.Title)
+
+	// loop
+	if loops[play.GuildID] && !skips[play.GuildID] {
+		enqueuePlay(play)
+	}
+
+	if skips[play.GuildID] {
+		skips[play.GuildID] = false
+	} else {
+		youtubeQueues[play.GuildID].enqueue(play.Title)
+	}
+
+	time.Sleep(time.Millisecond * time.Duration(500))
 
 	// If there is another song in the queue, recurse and play that
 	if len(queues[play.GuildID]) > 0 {

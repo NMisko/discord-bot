@@ -225,7 +225,7 @@ func dice(s *discordgo.Session, m *discordgo.MessageCreate) {
 }
 
 func help(s *discordgo.Session, m *discordgo.MessageCreate) {
-	data := "Commands for J.A.R.V.I.S.: \n ''!help'' - list all commands \n ''!dice'' - to roll a dice, \n ''!elo'' <summonername> - show the current LoL rank of the Summoner \n ''!remindme'' <seconds> <message> or ''!rm'' <seconds> <message> - remind you something sometime \n Emotes: \n ''!play(s)'' - play a youtube song \n ''!queue'' - show the current queue \n ''!skip'' - skip a song"
+	data := "Commands for J.A.R.V.I.S.: \n ''!help'' - list all commands \n ''!dice'' - to roll a dice, \n ''!elo'' <summonername> - show the current LoL rank of the Summoner \n ''!remindme'' <seconds> <message> or ''!rm'' <seconds> <message> - remind you something sometime \n Emotes: \n ''!play(s)'' - play a youtube song \n ''!queue'' - show the current queue \n ''!skip'' - skip a song \n ''!loop'' - loop songs"
 	s.ChannelMessageSend(m.ChannelID, data)
 }
 

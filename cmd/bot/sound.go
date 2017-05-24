@@ -263,12 +263,11 @@ func playSound(play *Play, vc *discordgo.VoiceConnection) (err error) {
 
 	// Play the sound
 	play.Sound.Play(vc)
-
 	youtubeQueues[play.GuildID].remove(play.Title)
 
 	// loop
 	if loops[play.GuildID] && !skips[play.GuildID] {
-		enqueuePlay(play)
+		go enqueuePlay(play)
 	}
 
 	if skips[play.GuildID] {

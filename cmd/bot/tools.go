@@ -10,6 +10,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 	"unicode"
 	"unicode/utf8"
@@ -181,6 +182,7 @@ type StringQueue struct {
 	head  int //index of the first element
 	tail  int //index of the last element
 	size  int //total size
+	mut   sync.Mutex
 }
 
 func newStringQueue(size int) *StringQueue {
@@ -194,6 +196,7 @@ func newStringQueue(size int) *StringQueue {
 
 //need to implement what happens if queue full
 func (q *StringQueue) enqueue(s string) error {
+	q.mut.Lock()
 	//Move queue back to front
 	if q.tail == q.size-1 {
 		var newstack = make([]string, q.size)
@@ -207,49 +210,70 @@ func (q *StringQueue) enqueue(s string) error {
 		q.stack = newstack
 	}
 	if q.tail == q.size-1 {
+		q.mut.Unlock()
 		return errors.New("Queue full. Cannot enqueue anymore.")
 	} else {
 		q.stack[q.tail+1] = s
 		q.tail++
+		q.mut.Unlock()
 		return nil
 	}
 }
 
 func (q *StringQueue) peek() string {
-	return q.stack[q.head]
+	q.mut.Lock()
+	out := q.stack[q.head]
+
+	q.mut.Unlock()
+	return out
 }
 
 func (q *StringQueue) dequeue() (string, error) {
+	q.mut.Lock()
 	if q.tail < q.head {
+
+		q.mut.Unlock()
 		return "", errors.New("Queue already empty. Cannot dequeue.")
 	} else {
 		out := q.stack[q.head]
 		q.stack[q.head] = ""
 		q.head++
 
+		q.mut.Unlock()
 		return out, nil
 	}
 }
 
 //removes first occurrence of title
 func (q *StringQueue) remove(s string) {
+	q.mut.Lock()
 	for i := q.head; i <= q.tail; i++ {
 		if q.stack[i] == s {
 			for j := i; j <= q.tail; j++ {
-				if j+1 < q.length() && q.stack[j+1] != "" {
+				if j+1 < q.tail-q.head+1 && q.stack[j+1] != "" {
 					q.stack[j] = q.stack[j+1]
 				}
 			}
 			q.tail = q.tail - 1
+			q.mut.Unlock()
 			return
 		}
 	}
+	q.mut.Unlock()
 }
 
 func (q *StringQueue) length() int {
-	return q.tail - q.head + 1
+	q.mut.Lock()
+	out := q.tail - q.head + 1
+	q.mut.Unlock()
+
+	return out
 }
 
 func (q *StringQueue) toArray() []string {
-	return q.stack[q.head:(q.tail + 1)]
+	q.mut.Lock()
+	out := q.stack[q.head:(q.tail + 1)]
+	q.mut.Unlock()
+
+	return out
 }

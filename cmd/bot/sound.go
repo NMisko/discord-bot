@@ -1,5 +1,17 @@
 package main
 
+/** Clean this up
+sound := createSound(pathToSoundFile)
+go enqueueSound(user, guild, sound, title)
+	| enqueuePlay (creates "play" out of sound) <--
+		| queues[play.GuildID] <- play           |
+		 or                                      |
+	 	| playSound(play)                        |  		 <--
+			Play(play)                           |             |
+			if looping ---------------------------    		   |
+			if there's another "play" in the queue, play it ---|
+**/
+
 import (
 	"encoding/binary"
 	"fmt"
@@ -272,7 +284,7 @@ func playSound(play *Play, vc *discordgo.VoiceConnection) (err error) {
 
 	if skips[play.GuildID] {
 		skips[play.GuildID] = false
-	} else {
+	} else if loops[play.GuildID] {
 		youtubeQueues[play.GuildID].enqueue(play.Title)
 	}
 

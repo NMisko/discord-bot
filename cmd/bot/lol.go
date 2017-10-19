@@ -111,54 +111,49 @@ func GetSummonerElo(summonername string, region string) Summoner {
 /* Struct used to unmarshal the data gotten from the RiotGames API
  */
 type RiotSummoner struct {
-	Name string `json:"name"`
-	ID   int    `json:"id"`
+	Name   string `json:"name"`
+	ID     int    `json:"id"`
+	Status struct {
+		Code int `json:"status_code"`
+	} `json:"status"`
 }
 
 /* Gets information about a summoner from the RiotGames API. */
 func GetSummoner(summoner string, region string, key string) RiotSummoner {
-	jsonMessage := riotApiCall(fmt.Sprintf("/api/lol/%s/v1.4/summoner/by-name/%s", region, summoner), region, key)
-	var w map[string]RiotSummoner
+	jsonMessage := riotApiCall(fmt.Sprintf("/lol/summoner/v3/summoners/by-name/%s", summoner), region, key)
+	var w RiotSummoner
 	json.Unmarshal(jsonMessage, &w)
-	log.Info(w)
 
-	return w[lowercase(summoner)]
+	return w
 }
 
 /* 	Contains data about a league tier.
 Used to unmarshall the data gotten from the RiotGames API
 */
-type RiotLeague struct {
-	Tier  string `json:"tier"`
-	Name  string `json:"name"`
-	Entry []struct {
-		LP       int    `json:"leaguePoints"`
-		Division string `json:"division"`
-		Wins     int    `json:"wins"`
-		Losses   int    `json:"losses"`
-	} `json:"entries"`
+type RiotLeagues struct {
+	Type string `json:"queueType"`
+	Rank string `json:"rank"`
+	Tier string `json:"tier"`
 }
 
 /* Returns the league of the given summoner. Use 'GetSummoner' to get the summonerid of a summoner (it's not the username).
  */
-func GetLeague(summonerid string, region string, key string) RiotLeague {
-	jsonMessage := riotApiCall(fmt.Sprintf("/api/lol/%s/v2.5/league/by-summoner/%s/entry", region, summonerid), region, key)
+func GetLeague(summonerid string, region string, key string) []RiotLeagues {
+	jsonMessage := riotApiCall(fmt.Sprintf("/lol/league/v3/positions/by-summoner/%s", summonerid), region, key)
 
-	var w map[string][]RiotLeague
+	var w []RiotLeagues
 	json.Unmarshal(jsonMessage, &w)
-	log.Info(w)
 
-	if len(w[summonerid]) < 1 {
-		out := RiotLeague{Tier: "Unranked"}
-		return out
+	if len(w) < 1 {
+		return []RiotLeagues{}
 	}
-	return w[summonerid][0]
+	return w
 }
 
 /*	Generic method for a call to the RiotGames API.
  */
 func riotApiCall(call string, region string, key string) []byte {
-	url := fmt.Sprintf("https://%s.api.pvp.net%s?api_key=%s", region, call, key)
+	url := fmt.Sprintf("https://%s.api.riotgames.com%s?api_key=%s", region, call, key)
 	log.Info(url)
 	resp, err := http.Get(url)
 

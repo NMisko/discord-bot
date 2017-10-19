@@ -23,7 +23,7 @@ type MessageAck struct {
 }
 
 var (
-	DEFAULT_LOL_REGION string = "euw"
+	DEFAULT_LOL_REGION string = "euw1"
 	COIN_FACES_PATHS          = []string{
 		"images/Head.png",
 		"images/Tail.png",
@@ -75,50 +75,38 @@ func elo(input []string, s *discordgo.Session, m *discordgo.MessageCreate, riotk
 	if !p.nextToken() {
 		return
 	}
-	p.nextToken()
 	name := strings.ToLower(p.Token)
-	p.nextToken()
-	switch strings.ToLower(p.Token) {
-	case "na":
-		region = "na"
-	case "br":
-		region = "br"
-	case "kr":
-		region = ""
-	case "eune":
-		region = "eune"
-	case "jp":
-		region = "jp"
-	case "tr":
-		region = "tr"
-	case "oce":
-		region = "oce"
-	case "las":
-		region = "las"
-	case "ru":
-		region = "ru"
+
+	if p.nextToken() {
+		region = strings.ToLower(p.Token)
+		if !contains(region, []string{"ru", "kr"}) {
+			if contains(region, []string{"euw", "eun", "br", "oc", "jp", "na", "tr", "la"}) {
+				region = region + "1"
+			} else {
+				s.ChannelMessageSend(m.ChannelID, "Could not find region: "+region)
+				return
+			}
+		}
 	}
+
 	summoner := GetSummoner(name, region, riotkey)
-	if summoner.ID == 0 {
+	if summoner.Status.Code == 404 {
 		s.ChannelMessageSend(m.ChannelID, "Could not find player.")
 		return
 	}
-	league := GetLeague(strconv.Itoa(summoner.ID), region, riotkey)
-	if league.Tier != "Unranked" {
-		entry := league.Entry[0]
-		s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("**%s %s** %sLP", capitalize(strings.ToLower(league.Tier)), entry.Division, strconv.Itoa(entry.LP)))
-		s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Wins: **%s** Losses: **%s**", strconv.Itoa(entry.Wins), strconv.Itoa(entry.Losses)))
-	} else {
+
+	leagues := GetLeague(strconv.Itoa(summoner.ID), region, riotkey)
+	message := ""
+	if len(leagues) == 0 {
 		s.ChannelMessageSend(m.ChannelID, "**Unranked**")
+		return
 	}
-	switch name {
-	case "uznick":
-		s.ChannelMessageSend(m.ChannelID, "But deserves Challenjour, Kappa.")
-	case "mehdid":
-		s.ChannelMessageSend(m.ChannelID, "Also, best Amumu EUW.")
-	case "flakelol":
-		s.ChannelMessageSend(m.ChannelID, "Also, best Shen EUW.")
+	for _, league := range leagues {
+		if league.Tier != "Unranked" {
+			message = message + fmt.Sprintf("%s: **%s %s**\n", league.Type, capitalize(strings.ToLower(league.Tier)), league.Rank)
+		}
 	}
+	s.ChannelMessageSend(m.ChannelID, message)
 }
 
 /* 	Sends messages with information about the given cities weather

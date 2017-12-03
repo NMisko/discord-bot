@@ -213,11 +213,11 @@ func dice(s *discordgo.Session, m *discordgo.MessageCreate) {
 }
 
 func help(s *discordgo.Session, m *discordgo.MessageCreate) {
-	data := "Commands for J.A.R.V.I.S.: \n ''!help'' - list all commands \n ''!dice'' - to roll a dice, \n ''!elo'' <summonername> - show the current LoL rank of the Summoner \n ''!remindme'' <seconds> <message> or ''!rm'' <seconds> <message> - remind you something sometime \n Emotes: \n ''!play(s)'' - play a youtube song \n ''!queue'' - show the current queue \n ''!skip'' - skip a song \n ''!loop'' - loop songs"
+	data := "Commands for J.A.R.V.I.S.: \n ''!help'' - list all commands \n ''!dice'' - to roll a dice, \n ''!elo'' <summonername> - show the current LoL rank of the Summoner \n ''!remindme'' <seconds> <message> or ''!rm'' <seconds> <message> - remind you something sometime \n Emotes: \n ''!play(s)'' - play a youtube song \n ''!queue'' - show the current queue \n ''!skip'' - skip a song \n ''!loop'' - loop songs \n ''!auto'' - auto play songs"
 	s.ChannelMessageSend(m.ChannelID, data)
 }
 
-func queueAndDeleteYoutube(input []string, s *discordgo.Session, m *discordgo.MessageCreate, g *discordgo.Guild) {
+func queueAndDeleteYoutube(input []string, s *discordgo.Session, m *discordgo.MessageCreate, g *discordgo.Guild, authorID string) {
 	if err := s.ChannelMessageDelete(m.ChannelID, m.ID); err != nil {
 		log.Warning("Couldn't delete message.")
 	}
@@ -230,25 +230,29 @@ func queueAndDeleteYoutube(input []string, s *discordgo.Session, m *discordgo.Me
 	} else {
 		s.ChannelMessageSend(m.ChannelID, "Queuing song.")
 	}
-	queueYoutube(input, s, m, g)
+	queueYoutube(input, s, m, g.ID, authorID)
 }
 
 /* Queues up a Youtube video, whose sound is played in the voice channel the command caller is in. Downloads the entire Youtube video locally, which might take a while, based on the internet connection.
  */
-func queueYoutube(input []string, s *discordgo.Session, m *discordgo.MessageCreate, g *discordgo.Guild) {
+func queueYoutube(input []string, s *discordgo.Session, m *discordgo.MessageCreate, guildID string, authorID string) {
 	var (
 		titleOut    []byte
 		filenameOut []byte
 		err         error
 	)
 	if len(input) < 1 {
-		s.ChannelMessageSend(m.ChannelID, "Usage: !play <link>")
+		if s != nil {
+			s.ChannelMessageSend(m.ChannelID, "Usage: !play <link>")
+		}
 		return
 	}
 	link := input[0]
 
 	if strings.Contains(link, "&") || !strings.Contains(link, "www.youtube.com/watch?v=") {
-		s.ChannelMessageSend(m.ChannelID, "That link doesn't look right...")
+		if s != nil {
+			s.ChannelMessageSend(m.ChannelID, "That link doesn't look right...")
+		}
 		return
 	}
 
@@ -256,7 +260,9 @@ func queueYoutube(input []string, s *discordgo.Session, m *discordgo.MessageCrea
 
 	if filenameOut, err = exec.Command("youtube-dl", "-f", "140", link, "--get-filename").Output(); err != nil {
 		log.Info("Error calling youtube-dl command (only to get id): ", err)
-		s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Download failed :( Sorry <@%s>", m.Author.ID))
+		if s != nil {
+			s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Download failed :( Sorry <@%s>", m.Author.ID))
+		}
 		return
 	}
 	file := strings.Replace(string(filenameOut), "\n", "", -1) //replace all new lines
@@ -265,39 +271,45 @@ func queueYoutube(input []string, s *discordgo.Session, m *discordgo.MessageCrea
 	//THIS RETURNS A NEWLINE AT THE END
 	if titleOut, err = exec.Command("youtube-dl", "-f", "140", link, "--get-title").Output(); err != nil {
 		log.Info("Error calling youtube-dl command (only to get id): ", err)
-		s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Download failed :( Sorry <@%s>", m.Author.ID))
+		if s != nil {
+			s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Download failed :( Sorry <@%s>", m.Author.ID))
+		}
 		return
 	}
 	title := strings.Replace(string(titleOut), "\n", "", -1) //replace all new lines
 	log.Info("--get-title (with newlines removed): " + title)
 
-	if _, ok := youtubeDownloading[g.ID]; ok {
+	if _, ok := youtubeDownloading[guildID]; ok {
 		log.Info("Enqueuing (not a new queue)")
-		youtubeDownloading[g.ID].enqueue(title)
+		youtubeDownloading[guildID].enqueue(title)
 	} else {
 		log.Info("Enqueuing into a new queue")
-		youtubeDownloading[g.ID] = newStringQueue(20)
-		youtubeDownloading[g.ID].enqueue(title)
+		youtubeDownloading[guildID] = newStringQueue(20)
+		youtubeDownloading[guildID].enqueue(title)
 	}
 
 	log.Info("Starting download.")
 	if err = exec.Command("youtube-dl", "-f", "140", link).Run(); err != nil {
 		log.Info("Error calling youtube-dl command: ", err)
-		s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Download failed :( Sorry <@%s>", m.Author.ID))
+		if s != nil {
+			s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Download failed :( Sorry <@%s>", m.Author.ID))
+		}
 		return
 	}
 	log.Info("Finished download.")
 
-	youtubeDownloading[g.ID].remove(title)
+	youtubeDownloading[guildID].remove(title)
 
-	if _, ok := youtubeQueues[g.ID]; ok {
-		err = youtubeQueues[g.ID].enqueue(title)
+	if _, ok := youtubeQueues[guildID]; ok {
+		err = youtubeQueues[guildID].enqueue(title)
 		if err != nil {
-			s.ChannelMessageSend(m.ChannelID, "Queue full. sry m8")
+			if s != nil {
+				s.ChannelMessageSend(m.ChannelID, "Queue full. sry m8")
+			}
 		}
 	} else {
-		youtubeQueues[g.ID] = newStringQueue(20)
-		youtubeQueues[g.ID].enqueue(title)
+		youtubeQueues[guildID] = newStringQueue(20)
+		youtubeQueues[guildID].enqueue(title)
 	}
 
 	log.Info("File: " + file)
@@ -307,7 +319,7 @@ func queueYoutube(input []string, s *discordgo.Session, m *discordgo.MessageCrea
 	sound := createSound(link)
 	sound.Load(file)
 
-	go enqueueSound(m.Author, g, sound, title)
+	go enqueueSound(authorID, guildID, sound, title, link)
 
 	err = os.Remove(file)
 	if err != nil {
@@ -328,6 +340,13 @@ func nextYoutube(s *discordgo.Session, m *discordgo.MessageCreate, g *discordgo.
 func loopYoutube(s *discordgo.Session, m *discordgo.MessageCreate, g *discordgo.Guild) {
 	s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Looping: %t.", !loops[g.ID]))
 	loop(g.ID)
+}
+
+/* Autoplays songs.
+ */
+func autoYoutube(s *discordgo.Session, m *discordgo.MessageCreate, g *discordgo.Guild) {
+	s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Auto playing: %t.", !autos[g.ID]))
+	auto(g.ID)
 }
 
 func currentsong(s *discordgo.Session, m *discordgo.MessageCreate, g *discordgo.Guild) {
@@ -370,7 +389,8 @@ func printQueue(s *discordgo.Session, m *discordgo.MessageCreate, g *discordgo.G
 	if (!okq || yq.length() == 0) && (!okd || ydq.length() == 0) {
 		message = message + "Queue is empty\n"
 	}
-	message = message + "Looping is set to: " + strconv.FormatBool(loops[g.ID])
+	message = message + "Looping is set to: " + strconv.FormatBool(loops[g.ID]) + "\n"
+	message = message + "Autoplaying is set to: " + strconv.FormatBool(autos[g.ID])
 	s.ChannelMessageSend(m.ChannelID, message)
 }
 

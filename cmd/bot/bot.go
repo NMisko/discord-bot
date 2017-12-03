@@ -141,13 +141,15 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	switch strings.ToLower(parts[0]) {
 	case "!play":
-		go queueYoutube(parts[1:], s, m, guild)
+		go queueYoutube(parts[1:], s, m, guild.ID, m.Author.ID)
 	case "!plays":
-		go queueAndDeleteYoutube(parts[1:], s, m, guild)
+		go queueAndDeleteYoutube(parts[1:], s, m, guild, m.Author.ID)
 	case "!skip":
 		nextYoutube(s, m, guild)
 	case "!loop":
 		loopYoutube(s, m, guild)
+	case "!auto":
+		autoYoutube(s, m, guild)
 	}
 }
 

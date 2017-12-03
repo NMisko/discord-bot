@@ -14,10 +14,15 @@ go enqueueSound(user, guild, sound, title)
 
 import (
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
+	"math/rand"
+	"net/http"
 	"os"
 	"os/exec"
+	"strings"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -28,11 +33,13 @@ import (
 var (
 	// Replace all this with struct
 	// Map of Guild id's to *Play channels, used for queuing and rate-limiting guilds
-	queues  map[string]chan *Play = make(map[string]chan *Play)
-	songs   map[string]string     = make(map[string]string)
-	skips   map[string]bool       = make(map[string]bool)
-	loops   map[string]bool       = make(map[string]bool)
-	current map[string]string     = make(map[string]string)
+	queues     map[string]chan *Play = make(map[string]chan *Play)
+	songs      map[string]string     = make(map[string]string)
+	skips      map[string]bool       = make(map[string]bool)
+	loops      map[string]bool       = make(map[string]bool)
+	autos      map[string]bool       = make(map[string]bool)
+	lastPlayed map[string]*Play      = make(map[string]*Play)
+	current    map[string]string     = make(map[string]string)
 
 	// Owner
 	OWNER string
@@ -52,6 +59,7 @@ type Play struct {
 	UserID    string
 	Sound     *Sound
 	Title     string
+	Url       string
 }
 
 // Sound represents a sound clip
@@ -203,24 +211,40 @@ func shardContains(guildid string) bool {
 }
 
 // Enqueues a play into the ratelimit/buffer guild queue
-func enqueueSound(user *discordgo.User, guild *discordgo.Guild, sound *Sound, title string) {
-	skips[guild.ID] = false
+func enqueueSound(userID string, guildID string, sound *Sound, title string, url string) {
+	skips[guildID] = false
+
+	guild, _ := discord.State.Guild(guildID)
+	member, err := discord.State.Member(guildID, userID)
+	if err != nil {
+		return
+	}
+
+	user := member.User
+
 	// Grab the users voice channel
 	channel := getCurrentVoiceChannel(user, guild)
 	if channel == nil {
 		log.WithFields(log.Fields{
-			"user":  user.ID,
-			"guild": guild.ID,
+			"user":  userID,
+			"guild": guildID,
 		}).Warning("Failed to find channel to play sound in")
 		return
 	}
 
 	play := &Play{
-		GuildID:   guild.ID,
+		GuildID:   guildID,
 		ChannelID: channel.ID,
-		UserID:    user.ID,
+		UserID:    userID,
 		Sound:     sound,
 		Title:     title,
+		Url:       url,
+	}
+
+	lastPlayed[guildID] = play
+
+	if autos[play.GuildID] {
+		go autoplay(play.GuildID)
 	}
 
 	enqueuePlay(play)
@@ -248,6 +272,52 @@ func loop(GuildID string) {
 	loops[GuildID] = !loops[GuildID]
 }
 
+func auto(GuildID string) {
+	autos[GuildID] = !autos[GuildID]
+	if autos[GuildID] {
+		go autoplay(GuildID)
+	}
+}
+
+type YoutubeRelatedVideos struct {
+	Items []struct {
+		Id struct {
+			VideoId string `json:"videoId"`
+		} `json:"id"`
+	} `json:"items"`
+}
+
+func autoplay(GuildID string) {
+	// check if auto playing is necessary (queue is smaller than 3)
+	// then get related video to last video in queue and queue it
+	if lastPlayed[GuildID] != nil && (youtubeDownloading[GuildID] == nil || youtubeDownloading[GuildID].length() == 0) && (youtubeQueues[GuildID] == nil || youtubeQueues[GuildID].length() < 3) {
+		play := lastPlayed[GuildID]
+
+		id := strings.Split(play.Url, "watch?v=")[1]
+		template := "https://www.googleapis.com/youtube/v3/search?part=snippet&relatedToVideoId=%s&type=video&key=AIzaSyBDsvj-LjQzjOk1yBLeKwKxjYj5TIjpk1g"
+
+		url := fmt.Sprintf(template, id)
+		resp, err := http.Get(url)
+
+		if err != nil {
+			log.WithFields(log.Fields{
+				"error": err,
+			}).Warning("Failed to GET Youtubevideo suggested videos: ")
+		}
+		defer resp.Body.Close()
+		body, err := ioutil.ReadAll(resp.Body)
+
+		var y YoutubeRelatedVideos
+		json.Unmarshal(body, &y)
+
+		// Random index, to avoid circling
+		newId := y.Items[rand.Intn(3)].Id.VideoId
+		log.Info("Autoplaying " + string(newId))
+
+		queueYoutube([]string{fmt.Sprintf("https://www.youtube.com/watch?v=%s", newId)}, nil, nil, GuildID, play.UserID)
+	}
+}
+
 // Play a sound
 func playSound(play *Play, vc *discordgo.VoiceConnection) (err error) {
 	log.WithFields(log.Fields{
@@ -272,6 +342,10 @@ func playSound(play *Play, vc *discordgo.VoiceConnection) (err error) {
 	}
 	// Sleep for a specified amount of time before playing the sound
 	time.Sleep(time.Millisecond * 500)
+
+	if autos[play.GuildID] {
+		go autoplay(play.GuildID)
+	}
 
 	// Play the sound
 	play.Sound.Play(vc)

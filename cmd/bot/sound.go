@@ -1,6 +1,6 @@
 package main
 
-/** Clean this up
+/** Structure:
 sound := createSound(pathToSoundFile)
 go enqueueSound(user, guild, sound, title)
 	| enqueuePlay (creates "play" out of sound) <--
@@ -8,7 +8,7 @@ go enqueueSound(user, guild, sound, title)
 		 or                                      |
 	 	| playSound(play)                        |  		 <--
 			Play(play)                           |             |
-			if looping ---------------------------    		   |
+			if looping ---------------------------    		     |
 			if there's another "play" in the queue, play it ---|
 **/
 
@@ -78,6 +78,138 @@ func createSound(Name string) *Sound {
 		Name:       Name,
 		encodeChan: make(chan []int16, 10),
 		buffer:     make([][]byte, 0),
+	}
+}
+
+// Enqueues a play into the ratelimit/buffer guild queue
+func enqueueSound(userID string, guildID string, sound *Sound, title string, url string) {
+	skips[guildID] = false
+
+	guild, _ := discord.State.Guild(guildID)
+	member, err := discord.State.Member(guildID, userID)
+	if err != nil {
+		return
+	}
+
+	user := member.User
+
+	// Grab the users voice channel
+	channel := getCurrentVoiceChannel(user, guild)
+	if channel == nil {
+		log.WithFields(log.Fields{
+			"user":  userID,
+			"guild": guildID,
+		}).Warning("Failed to find channel to play sound in")
+		return
+	}
+
+	play := &Play{
+		GuildID:   guildID,
+		ChannelID: channel.ID,
+		UserID:    userID,
+		Sound:     sound,
+		Title:     title,
+		Url:       url,
+	}
+
+	lastPlayed[guildID] = play
+
+	if autos[play.GuildID] {
+		go autoplay(play.GuildID)
+	}
+
+	enqueuePlay(play)
+}
+
+func enqueuePlay(play *Play) {
+	// Check if we already have a connection to this guild
+	_, exists := queues[play.GuildID]
+
+	if exists {
+		if len(queues[play.GuildID]) < MAX_QUEUE_SIZE {
+			queues[play.GuildID] <- play
+		}
+	} else {
+		queues[play.GuildID] = make(chan *Play, MAX_QUEUE_SIZE)
+		playSound(play, nil)
+	}
+}
+
+// Play a sound
+func playSound(play *Play, vc *discordgo.VoiceConnection) (err error) {
+	log.WithFields(log.Fields{
+		"play": play,
+	}).Info("Playing sound")
+
+	if vc == nil {
+		vc, err = discord.ChannelVoiceJoin(play.GuildID, play.ChannelID, false, false)
+		// vc.Receive = false
+		if err != nil {
+			log.WithFields(log.Fields{
+				"error": err,
+			}).Error("Failed to play sound")
+			delete(queues, play.GuildID)
+			return err
+		}
+	}
+	// If we need to change channels, do that now
+	if vc.ChannelID != play.ChannelID {
+		vc.ChangeChannel(play.ChannelID, false, false)
+		time.Sleep(time.Millisecond * 125)
+	}
+	// Sleep for a specified amount of time before playing the sound
+	time.Sleep(time.Millisecond * 500)
+
+	if autos[play.GuildID] {
+		go autoplay(play.GuildID)
+	}
+
+	// Play the sound
+	play.Sound.Play(vc)
+	youtubeQueues[play.GuildID].remove(play.Title)
+
+	// loop
+	if loops[play.GuildID] && !skips[play.GuildID] {
+		go enqueuePlay(play)
+	}
+
+	if skips[play.GuildID] {
+		skips[play.GuildID] = false
+	} else if loops[play.GuildID] {
+		youtubeQueues[play.GuildID].enqueue(play.Title)
+	}
+
+	time.Sleep(time.Millisecond * time.Duration(500))
+
+	// If there is another song in the queue, recurse and play that
+	if len(queues[play.GuildID]) > 0 {
+		play := <-queues[play.GuildID]
+		playSound(play, vc)
+		return nil
+	}
+
+	// If the queue is empty, delete it
+	time.Sleep(time.Millisecond * time.Duration(500))
+	delete(queues, play.GuildID)
+
+	vc.Disconnect()
+	return nil
+}
+
+// Plays this sound over the specified VoiceConnection
+func (s *Sound) Play(vc *discordgo.VoiceConnection) {
+	vc.Speaking(true)
+	defer vc.Speaking(false)
+
+	// t := time.NewTicker(time.Duration(1) * time.Second)
+	// go s.control(t)
+
+	for _, buff := range s.buffer {
+		vc.OpusSend <- buff
+		if skips[vc.GuildID] == true {
+			//skips[vc.GuildID] = false
+			break
+		}
 	}
 }
 
@@ -160,23 +292,6 @@ func (s *Sound) Load(path string) error {
 	return nil
 }
 
-// Plays this sound over the specified VoiceConnection
-func (s *Sound) Play(vc *discordgo.VoiceConnection) {
-	vc.Speaking(true)
-	defer vc.Speaking(false)
-
-	// t := time.NewTicker(time.Duration(1) * time.Second)
-	// go s.control(t)
-
-	for _, buff := range s.buffer {
-		vc.OpusSend <- buff
-		if skips[vc.GuildID] == true {
-			//skips[vc.GuildID] = false
-			break
-		}
-	}
-}
-
 // func (s *Sound) control(t *time.Ticker) {
 //     for {
 //         <- t.C
@@ -193,75 +308,6 @@ func getCurrentVoiceChannel(user *discordgo.User, guild *discordgo.Guild) *disco
 		}
 	}
 	return nil
-}
-
-// Whether a guild id is in this shard
-func shardContains(guildid string) bool {
-	if len(SHARDS) != 0 {
-		ok := false
-		for _, shard := range SHARDS {
-			if len(guildid) >= 5 && string(guildid[len(guildid)-5]) == shard {
-				ok = true
-				break
-			}
-		}
-		return ok
-	}
-	return true
-}
-
-// Enqueues a play into the ratelimit/buffer guild queue
-func enqueueSound(userID string, guildID string, sound *Sound, title string, url string) {
-	skips[guildID] = false
-
-	guild, _ := discord.State.Guild(guildID)
-	member, err := discord.State.Member(guildID, userID)
-	if err != nil {
-		return
-	}
-
-	user := member.User
-
-	// Grab the users voice channel
-	channel := getCurrentVoiceChannel(user, guild)
-	if channel == nil {
-		log.WithFields(log.Fields{
-			"user":  userID,
-			"guild": guildID,
-		}).Warning("Failed to find channel to play sound in")
-		return
-	}
-
-	play := &Play{
-		GuildID:   guildID,
-		ChannelID: channel.ID,
-		UserID:    userID,
-		Sound:     sound,
-		Title:     title,
-		Url:       url,
-	}
-
-	lastPlayed[guildID] = play
-
-	if autos[play.GuildID] {
-		go autoplay(play.GuildID)
-	}
-
-	enqueuePlay(play)
-}
-
-func enqueuePlay(play *Play) {
-	// Check if we already have a connection to this guild
-	_, exists := queues[play.GuildID]
-
-	if exists {
-		if len(queues[play.GuildID]) < MAX_QUEUE_SIZE {
-			queues[play.GuildID] <- play
-		}
-	} else {
-		queues[play.GuildID] = make(chan *Play, MAX_QUEUE_SIZE)
-		playSound(play, nil)
-	}
 }
 
 func next(GuildID string) {
@@ -316,65 +362,4 @@ func autoplay(GuildID string) {
 
 		queueYoutube([]string{fmt.Sprintf("https://www.youtube.com/watch?v=%s", newId)}, nil, nil, GuildID, play.UserID)
 	}
-}
-
-// Play a sound
-func playSound(play *Play, vc *discordgo.VoiceConnection) (err error) {
-	log.WithFields(log.Fields{
-		"play": play,
-	}).Info("Playing sound")
-
-	if vc == nil {
-		vc, err = discord.ChannelVoiceJoin(play.GuildID, play.ChannelID, false, false)
-		// vc.Receive = false
-		if err != nil {
-			log.WithFields(log.Fields{
-				"error": err,
-			}).Error("Failed to play sound")
-			delete(queues, play.GuildID)
-			return err
-		}
-	}
-	// If we need to change channels, do that now
-	if vc.ChannelID != play.ChannelID {
-		vc.ChangeChannel(play.ChannelID, false, false)
-		time.Sleep(time.Millisecond * 125)
-	}
-	// Sleep for a specified amount of time before playing the sound
-	time.Sleep(time.Millisecond * 500)
-
-	if autos[play.GuildID] {
-		go autoplay(play.GuildID)
-	}
-
-	// Play the sound
-	play.Sound.Play(vc)
-	youtubeQueues[play.GuildID].remove(play.Title)
-
-	// loop
-	if loops[play.GuildID] && !skips[play.GuildID] {
-		go enqueuePlay(play)
-	}
-
-	if skips[play.GuildID] {
-		skips[play.GuildID] = false
-	} else if loops[play.GuildID] {
-		youtubeQueues[play.GuildID].enqueue(play.Title)
-	}
-
-	time.Sleep(time.Millisecond * time.Duration(500))
-
-	// If there is another song in the queue, recurse and play that
-	if len(queues[play.GuildID]) > 0 {
-		play := <-queues[play.GuildID]
-		playSound(play, vc)
-		return nil
-	}
-
-	// If the queue is empty, delete it
-	time.Sleep(time.Millisecond * time.Duration(500))
-	delete(queues, play.GuildID)
-
-	vc.Disconnect()
-	return nil
 }

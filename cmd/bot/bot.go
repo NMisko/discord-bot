@@ -153,6 +153,21 @@ func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 }
 
+// Whether a guild id is in this shard
+func shardContains(guildid string) bool {
+	if len(SHARDS) != 0 {
+		ok := false
+		for _, shard := range SHARDS {
+			if len(guildid) >= 5 && string(guildid[len(guildid)-5]) == shard {
+				ok = true
+				break
+			}
+		}
+		return ok
+	}
+	return true
+}
+
 func main() {
 	flag.Parse()
 

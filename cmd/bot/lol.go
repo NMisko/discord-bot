@@ -5,11 +5,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"regexp"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/yhat/scrape"
-	"golang.org/x/net/html"
 )
 
 /* Struct used to unmarshal the data gotten from the RiotGames API

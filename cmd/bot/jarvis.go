@@ -258,7 +258,7 @@ func queueYoutube(input []string, s *discordgo.Session, m *discordgo.MessageCrea
 
 	log.Info("Downloading ", link)
 
-	if filenameOut, err = exec.Command("youtube-dl", "-f", "140", link, "--get-filename").Output(); err != nil {
+	if filenameOut, err = exec.Command("youtube-dl", "-f", "140", link, "--get-filename", "--restrict-filenames").Output(); err != nil {
 		log.Info("Error calling youtube-dl command (only to get id): ", err)
 		if s != nil {
 			s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Download failed :( Sorry <@%s>", m.Author.ID))
@@ -289,7 +289,7 @@ func queueYoutube(input []string, s *discordgo.Session, m *discordgo.MessageCrea
 	}
 
 	log.Info("Starting download.")
-	if err = exec.Command("youtube-dl", "-f", "140", link).Run(); err != nil {
+	if err = exec.Command("youtube-dl", "-f", "140", link, "--restrict-filenames").Run(); err != nil {
 		log.Info("Error calling youtube-dl command: ", err)
 		if s != nil {
 			s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Download failed :( Sorry <@%s>", m.Author.ID))
